@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { eventAPI } from '../services/api';
 
-const BACKEND = 'http://localhost:5000';
+const BACKEND = import.meta.env.VITE_API_URL.replace("/api", "");
 
 const OrganizerPayments = () => {
   const [orders, setOrders] = useState([]);

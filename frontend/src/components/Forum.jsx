@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import { forumAPI } from '../services/api';
 
-const SOCKET_URL = 'http://localhost:5000';
+const SOCKET_URL = import.meta.env.VITE_API_URL.replace("/api", "");
 
 const EMOJI_LIST = ['👍', '❤️', '😂', '😮', '😢', '🔥', '🎉', '👀'];
 

@@ -3,7 +3,7 @@ import { io } from 'socket.io-client';
 import { forumAPI } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 
-const SOCKET_URL = 'http://localhost:5000';
+const SOCKET_URL = import.meta.env.VITE_API_URL.replace("/api", "");
 
 /**
  * Notification bell for participants.
