@@ -38,10 +38,10 @@ const PasswordResetRequestSchema = new mongoose.Schema(
       default: '',
       trim: true,
     },
-    // History / audit trail
+    
     history: [
       {
-        action: { type: String, required: true }, // 'created', 'approved', 'rejected'
+        action: { type: String, required: true }, 
         by: { type: mongoose.Schema.Types.ObjectId, required: true },
         role: { type: String, enum: ['organizer', 'admin'], required: true },
         timestamp: { type: Date, default: Date.now },

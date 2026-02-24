@@ -52,12 +52,12 @@ router.route('/')
 // Trending events
 router.route('/trending').get(getTrendingEvents);
 
-// ── Payment-proof merchandise routes (STATIC before dynamic) ──────────────────
+//  Payment-proof merchandise routes 
 // Organizer: all merchandise orders across their events
 router.route('/organizer-payments')
   .get(protectOrganizer, getOrganizerPayments);
 
-// Participant registrations (STATIC ROUTES FIRST)
+// Participant registrations 
 router.route('/registrations')
   .get(protectParticipant, getParticipantRegistrations);
 
@@ -69,7 +69,7 @@ router.route('/registrations/:regId/ticket')
 router.route('/organizer/:organizerId')
   .get(getEventsByOrganizer);
 
-// ── Order-level routes (participant) ──────────────────────────────────────────
+// Order-level routes (participant) 
 // Participant: get own order details
 router.route('/orders/:orderId')
   .get(protectParticipant, getOrderById);
@@ -82,7 +82,7 @@ router.route('/orders/:orderId/payment-proof')
 router.route('/orders/:orderId/status')
   .patch(protectOrganizer, updateOrderStatus);
 
-// ── Attendance: manual override on a registration ─────────────────────────────
+// Attendance: manual override on a registration 
 router.route('/registrations/:regId/manual-attendance')
   .post(protectOrganizer, manualAttendance);
 
@@ -106,7 +106,7 @@ router.route('/:id/registration')
 router.route('/:id/registrations')
   .get(protectOrganizer, getRegistrationsForEvent);
 
-// ── Attendance / scanner routes ───────────────────────────────────────────────
+//  Attendance / scanner routes 
 router.route('/:id/scan')
   .post(protectOrganizer, scanTicket);
 
@@ -116,7 +116,7 @@ router.route('/:id/attendance/export')
 router.route('/:id/attendance')
   .get(protectOrganizer, getEventAttendance);
 
-// ── Anonymous Feedback routes ─────────────────────────────────────────────────
+// Anonymous Feedback routes 
 // Participant: submit / update own feedback
 router.route('/:id/feedback')
   .post(protectParticipant, submitFeedback)
@@ -131,7 +131,7 @@ router.route('/:id/feedback/export')
 router.route('/:id/my-feedback')
   .get(protectParticipant, getMyFeedback);        // Participant: own feedback
 
-// Event by ID (DYNAMIC ROUTE LAST)
+// Event by ID 
 router.route('/:id')
   .get(getEvent)
   .put(protectOrganizer, updateEvent);

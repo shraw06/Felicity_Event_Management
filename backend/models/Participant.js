@@ -49,7 +49,6 @@ const participantSchema = new mongoose.Schema(
         default: [],
       },
       following: {
-        // store references to Organizer documents
         type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Organizer' }],
         default: [],
       },
@@ -57,11 +56,11 @@ const participantSchema = new mongoose.Schema(
     password: {
       type: String,
       required: [true, 'Please add a password'],
-      select: false, // we dont want it ot be returned in queries
+      select: false, 
     }
   },
   {
-    timestamps: true, // Adds createdAt and updatedAt
+    timestamps: true, 
   }
 );
 

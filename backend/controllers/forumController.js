@@ -4,9 +4,7 @@ const Notification = require('../models/Notification');
 const EventRegistration = require('../models/EventRegistration');
 const Event = require('../models/Event');
 
-// ── helpers ──────────────────────────────────────────────────────────────────
 
-/** Check that the requesting participant is registered for this event */
 async function assertParticipantRegistered(eventId, participantId) {
   const reg = await EventRegistration.findOne({
     eventId,
@@ -16,7 +14,6 @@ async function assertParticipantRegistered(eventId, participantId) {
   return !!reg;
 }
 
-/** Get all participantIds registered for an event (for broadcast notifications) */
 async function getRegisteredParticipantIds(eventId) {
   const regs = await EventRegistration.find({
     eventId,
@@ -25,7 +22,6 @@ async function getRegisteredParticipantIds(eventId) {
   return regs.map((r) => r.participantId);
 }
 
-/** Strip deleted messages' content but keep structure for threading */
 function sanitize(msg) {
   if (msg.deletedAt) {
     return { ...msg, content: '[This message was deleted]', reactions: [] };
@@ -33,18 +29,12 @@ function sanitize(msg) {
   return msg;
 }
 
-// ── REST handlers ─────────────────────────────────────────────────────────────
 
-/**
- * GET /api/forum/:eventId/messages
- * Returns message history for the event.
- * Accessible by: registered participant OR the event organizer.
- */
+
 const getMessages = async (req, res) => {
   try {
     const { eventId } = req.params;
 
-    // Determine caller identity
     const participantId = req.participant?._id;
     const organizerId = req.organizer?._id;
 
@@ -52,7 +42,6 @@ const getMessages = async (req, res) => {
       return res.status(401).json({ success: false, error: 'Not authenticated' });
     }
 
-    // Organizer: verify they own the event
     if (organizerId) {
       const event = await Event.findById(eventId).lean();
       if (!event || String(event.organizer_id) !== String(organizerId)) {
@@ -60,7 +49,6 @@ const getMessages = async (req, res) => {
       }
     }
 
-    // Participant: verify registration
     if (participantId) {
       const ok = await assertParticipantRegistered(eventId, participantId);
       if (!ok) {
@@ -79,10 +67,7 @@ const getMessages = async (req, res) => {
   }
 };
 
-/**
- * GET /api/forum/:eventId/notifications
- * Returns unread notification count + list for the authenticated participant.
- */
+
 const getNotifications = async (req, res) => {
   try {
     const participantId = req.participant?._id;
@@ -104,10 +89,7 @@ const getNotifications = async (req, res) => {
   }
 };
 
-/**
- * PATCH /api/forum/notifications/:id/read
- * Mark a notification as read.
- */
+
 const markNotificationRead = async (req, res) => {
   try {
     const participantId = req.participant?._id;
@@ -126,10 +108,7 @@ const markNotificationRead = async (req, res) => {
   }
 };
 
-/**
- * PATCH /api/forum/notifications/read-all
- * Mark all notifications as read for current participant.
- */
+
 const markAllNotificationsRead = async (req, res) => {
   try {
     const participantId = req.participant?._id;
@@ -145,12 +124,7 @@ const markAllNotificationsRead = async (req, res) => {
   }
 };
 
-// ── Socket.IO event handlers (called from socketHandler.js) ──────────────────
 
-/**
- * Handle send-message socket event.
- * Payload: { eventId, content, parentMessageId?, isAnnouncement? }
- */
 async function handleSendMessage(io, socket, payload, senderInfo) {
   try {
     const { eventId, content, parentMessageId, isAnnouncement } = payload;
@@ -158,7 +132,6 @@ async function handleSendMessage(io, socket, payload, senderInfo) {
 
     if (!content || !content.trim()) return;
 
-    // Access control
     if (senderRole === 'participant') {
       const ok = await assertParticipantRegistered(eventId, senderId);
       if (!ok) {
@@ -167,7 +140,6 @@ async function handleSendMessage(io, socket, payload, senderInfo) {
       }
     } else if (senderRole === 'organizer') {
       const event = await Event.findById(eventId).lean();
-      // Event model stores organizer as organizer_id
       if (!event || String(event.organizer_id) !== String(senderId)) {
         socket.emit('forum-error', { message: 'Not your event' });
         return;
@@ -188,10 +160,8 @@ async function handleSendMessage(io, socket, payload, senderInfo) {
 
     const msgObj = message.toObject();
 
-    // Broadcast to everyone in the event room
     io.to(`event:${eventId}`).emit('new-message', msgObj);
 
-    // If organizer posts an announcement, create notifications for all registered participants
     if (announcement) {
       const participantIds = await getRegisteredParticipantIds(eventId);
       if (participantIds.length > 0) {
@@ -204,7 +174,6 @@ async function handleSendMessage(io, socket, payload, senderInfo) {
           previewText: content.trim().slice(0, 120),
         }));
         const inserted = await Notification.insertMany(notifications);
-        // Emit to each participant's personal room so their bell updates live
         inserted.forEach((notif, i) => {
           io.to(`user:${participantIds[i]}`).emit('new-notification', notif.toObject());
         });
@@ -216,10 +185,7 @@ async function handleSendMessage(io, socket, payload, senderInfo) {
   }
 }
 
-/**
- * Handle delete-message socket event (organizer only).
- * Payload: { eventId, messageId }
- */
+
 async function handleDeleteMessage(io, socket, payload, senderInfo) {
   try {
     const { eventId, messageId } = payload;
@@ -230,15 +196,12 @@ async function handleDeleteMessage(io, socket, payload, senderInfo) {
       return;
     }
 
-    // Verify organizer owns the event
     const event = await Event.findById(eventId).lean();
-    // Event model stores organizer as organizer_id
     if (!event || String(event.organizer_id) !== String(senderId)) {
       socket.emit('forum-error', { message: 'Not your event' });
       return;
     }
 
-    // Soft-delete the message and all of its descendant replies.
     const now = new Date();
     const updated = await Message.findOneAndUpdate(
       { _id: messageId, eventId },
@@ -248,25 +211,20 @@ async function handleDeleteMessage(io, socket, payload, senderInfo) {
 
     if (!updated) return;
 
-    // Collect deleted ids (include the root message)
     const deletedIds = [String(updated._id)];
 
-    // BFS to find all descendant replies
     let queue = [updated._id];
     while (queue.length > 0) {
       const parents = queue;
       queue = [];
-      // find direct children for these parents
       const children = await Message.find({ parentMessageId: { $in: parents }, eventId, deletedAt: null }).select('_id').lean();
       if (!children || children.length === 0) break;
       const childIds = children.map((c) => c._id);
-      // mark these children as deleted
       await Message.updateMany({ _id: { $in: childIds } }, { $set: { deletedAt: now } });
       childIds.forEach((id) => deletedIds.push(String(id)));
       queue.push(...childIds);
     }
 
-    // Notify clients about all deleted messages
     io.to(`event:${eventId}`).emit('message-deleted', { messageIds: deletedIds });
   } catch (err) {
     console.error('handleDeleteMessage error', err);
@@ -274,10 +232,7 @@ async function handleDeleteMessage(io, socket, payload, senderInfo) {
   }
 }
 
-/**
- * Handle pin-message socket event (organizer only).
- * Payload: { eventId, messageId, pin: boolean }
- */
+
 async function handlePinMessage(io, socket, payload, senderInfo) {
   try {
     const { eventId, messageId, pin } = payload;
@@ -289,7 +244,6 @@ async function handlePinMessage(io, socket, payload, senderInfo) {
     }
 
     const event = await Event.findById(eventId).lean();
-    // Event model stores organizer as organizer_id
     if (!event || String(event.organizer_id) !== String(senderId)) {
       socket.emit('forum-error', { message: 'Not your event' });
       return;
@@ -310,11 +264,7 @@ async function handlePinMessage(io, socket, payload, senderInfo) {
   }
 }
 
-/**
- * Handle react-message socket event.
- * Payload: { eventId, messageId, emoji }
- * Toggles the reaction for the current user.
- */
+
 async function handleReactMessage(io, socket, payload, senderInfo) {
   try {
     const { eventId, messageId, emoji } = payload;
@@ -322,7 +272,6 @@ async function handleReactMessage(io, socket, payload, senderInfo) {
 
     if (!emoji) return;
 
-    // Access control for participants
     if (senderRole === 'participant') {
       const ok = await assertParticipantRegistered(eventId, senderId);
       if (!ok) {
@@ -339,7 +288,6 @@ async function handleReactMessage(io, socket, payload, senderInfo) {
     );
 
     if (existingIdx >= 0) {
-      // Remove (toggle off)
       message.reactions.splice(existingIdx, 1);
     } else {
       message.reactions.push({ emoji, userId: senderId, userRole: senderRole });

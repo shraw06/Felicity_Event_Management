@@ -5,12 +5,7 @@ import { useNavigate } from 'react-router-dom';
 
 const SOCKET_URL = import.meta.env.VITE_API_URL.replace("/api", "");
 
-/**
- * Notification bell for participants.
- * Shows unread count, dropdown with notifications, navigates to event forum on click.
- * Props:
- *  myId   – participant ObjectId string (to join personal socket room)
- */
+
 export default function NotificationBell({ myId }) {
   const [notifications, setNotifications] = useState([]);
   const [open, setOpen] = useState(false);
@@ -21,7 +16,6 @@ export default function NotificationBell({ myId }) {
 
   const unread = notifications.filter((n) => !n.read).length;
 
-  // Load notifications on mount
   useEffect(() => {
     if (!myId) return;
     forumAPI.getNotifications()
@@ -29,7 +23,6 @@ export default function NotificationBell({ myId }) {
       .catch(() => {});
   }, [myId]);
 
-  // Socket: listen for new notifications pushed from server
   useEffect(() => {
     if (!myId || !token) return;
     const socket = io(SOCKET_URL, { auth: { token }, transports: ['websocket'] });
@@ -40,7 +33,6 @@ export default function NotificationBell({ myId }) {
     return () => socket.disconnect();
   }, [myId, token]);
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handler = (e) => {
       if (dropRef.current && !dropRef.current.contains(e.target)) setOpen(false);
@@ -55,7 +47,6 @@ export default function NotificationBell({ myId }) {
       setNotifications((prev) => prev.map((n) => n._id === notif._id ? { ...n, read: true } : n));
     }
     setOpen(false);
-    // Navigate to event detail with a hash indicating the message
     navigate(`/events/${notif.eventId}#msg-${notif.messageId}`);
   };
 

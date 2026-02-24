@@ -15,7 +15,6 @@ export default function ParticipantDashboardContent() {
     const fetchUpcomingEvents = async () => {
       setLoading(true);
       try {
-        // request upcoming registrations only from backend
         const res = await eventAPI.getMyRegistrations(true);
         if (!mounted) return;
         if (res && res.data && res.data.success) {
@@ -65,7 +64,6 @@ export default function ParticipantDashboardContent() {
     }
   };
 
-  // categorize history items into tabs
   const categorized = (() => {
     const normal = [];
     const merch = [];
@@ -86,7 +84,6 @@ export default function ParticipantDashboardContent() {
       } else if (status === 'CANCELLED') {
         cancelled.push(it);
       } else {
-        // fallback: treat unknown as normal
         if (type === 'merchandise') merch.push(it);
         else normal.push(it);
       }

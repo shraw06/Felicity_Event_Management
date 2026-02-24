@@ -95,7 +95,7 @@ export const eventAPI = {
   // Get ticket details (ticketId + base64 QR) for a registration id
   getRegistrationTicket: (regId) => api.get(`/events/registrations/${regId}/ticket`),
 
-  // ── Merchandise payment-proof flow ───────────────────────────────────────────
+  // Merchandise payment-proof flow 
   createOrder: (eventId) => api.post(`/events/${eventId}/orders`),
   getOrder: (orderId) => api.get(`/events/orders/${orderId}`),
   uploadPaymentProof: (orderId, formData) =>
@@ -109,7 +109,7 @@ export const eventAPI = {
   getOrganizerPayments: (status) =>
     api.get('/events/organizer-payments', { params: status ? { status } : {} }),
 
-  // ── Attendance / scanner ────────────────────────────────────────────────────
+  // Attendance / scanner 
   scanTicket: (eventId, ticketId, method) =>
     api.post(`/events/${eventId}/scan`, { ticketId, method }),
   getEventAttendance: (eventId, params) =>
@@ -119,7 +119,7 @@ export const eventAPI = {
   exportAttendanceCsv: (eventId) =>
     api.get(`/events/${eventId}/attendance/export`, { responseType: 'blob' }),
 
-  // ── Anonymous Feedback ──────────────────────────────────────────────────────
+  // Anonymous Feedback 
   submitFeedback: (eventId, payload) =>
     api.post(`/events/${eventId}/feedback`, payload),
   getMyFeedback: (eventId) =>

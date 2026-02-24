@@ -6,7 +6,6 @@ export default function AdminManageOrganizers() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // modal state
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ contactEmail: '', first_name: '', last_name: '', category: '', description: '' });
   const [submitting, setSubmitting] = useState(false);
@@ -42,7 +41,6 @@ export default function AdminManageOrganizers() {
       setDeletingId(identifier);
       const res = await organizerAPI.deleteOrganizer(identifier);
       if (res && res.data && res.data.success) {
-        // refresh list
         await fetchOrganizers();
       } else {
         alert((res && res.data && res.data.error) || 'Failed to delete organizer');
@@ -60,7 +58,6 @@ export default function AdminManageOrganizers() {
     setShowModal(true);
   };
 
-  // Close modal but keep any recent credentials visible until admin dismisses explicitly
   const closeModal = () => {
     setShowModal(false);
   };
@@ -88,7 +85,7 @@ export default function AdminManageOrganizers() {
           loginEmail: organizer.email,
           credentials: credentials || null,
         });
-        fetchOrganizers(); // refresh list
+        fetchOrganizers(); 
       } else {
         setSubmitResult({ success: false, message: (res && res.data && res.data.error) || 'Failed to create organizer.' });
       }
@@ -112,7 +109,6 @@ export default function AdminManageOrganizers() {
         </button>
       </div>
 
-      {/* Credentials box: shown after successful creation until dismissed by admin */}
       {submitResult && submitResult.success && submitResult.credentials && (
         <div style={{ padding: 12, border: '1px solid #ffd28a', background: '#fff8e1', borderRadius: 8, marginBottom: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -162,7 +158,6 @@ export default function AdminManageOrganizers() {
         </div>
       )}
 
-      {/* ---- Modal ---- */}
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ background: '#fff', borderRadius: 10, padding: 28, width: 440, maxWidth: '95vw', boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}>

@@ -67,7 +67,6 @@ function App() {
           <Route path="/admins/login" element={<AdminLogin />} />
           <Route path="/preferences" element={<Preferences />} />
           <Route path="/participants/login" element={<ParticipantLogin />} />
-          {/* Participant area with nested routes */}
           <Route path="/participant" element={<ParticipantDashboard />}>
             <Route index element={<ParticipantDashboardContent />} />
             <Route path="dashboard" element={<ParticipantDashboardContent />} />
@@ -103,7 +102,6 @@ function App() {
 
 export default App;
 
-// small logout handler component placed after export so it can use hooks
 function LogoutHandlerParticipant() {
   const navigate = useNavigate();
   useEffect(() => {
@@ -118,7 +116,6 @@ function LogoutHandlerParticipant() {
   return null;
 }
 
-// small logout handler component placed after export so it can use hooks
 function LogoutHandlerOrganizer() {
   const navigate = useNavigate();
   useEffect(() => {

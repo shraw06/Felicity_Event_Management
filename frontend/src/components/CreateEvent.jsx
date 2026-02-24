@@ -23,7 +23,6 @@ const STATUS_COLORS = {
   closed: '#dc3545',
 };
 
-// Helpers to format/normalize datetime-local values consistently in local time
 function formatForInput(dateValue) {
   if (!dateValue) return '';
   const d = new Date(dateValue);
@@ -38,7 +37,6 @@ function formatForInput(dateValue) {
 
 function toIsoIfLocal(value) {
   if (!value) return undefined;
-  // If it's already an ISO-like string, normalize via Date
   const d = new Date(value);
   if (!isNaN(d.getTime())) return d.toISOString();
   return value;
@@ -80,7 +78,6 @@ function FieldEditor({ field, index, onChange, onMoveUp, onMoveDown, onRemove, d
 const EMPTY_EVENT = {
   name: '', description: '', type: '', non_iiit_eligibility: false, registration_deadline:'', event_start_date:'', event_end_date:'',
   registration_limit: 0, registration_fee: 0, event_tags: [], formFields: [],
-  // merchandise is only present for merchandise events; keep undefined by default
   merchandise: undefined,
   status: 'draft', form_locked: false,
 };
@@ -91,11 +88,9 @@ export default function CreateEvent(){
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
 
-  // The event currently being edited in the form builder
   const [event, setEvent] = useState({ ...EMPTY_EVENT });
-  const [editingId, setEditingId] = useState(null); // _id of event being edited, null = new
+  const [editingId, setEditingId] = useState(null); 
 
-  // Check if we're editing an existing event (passed via state)
   useEffect(() => {
     const eventToEdit = location.state?.eventToEdit;
     if (eventToEdit) {
@@ -103,7 +98,6 @@ export default function CreateEvent(){
         ...f,
         choicesText: (f.choices || []).join(', '),
       }));
-      // Normalize merchandise items for editing (convert arrays back to comma-separated text)
       const merchandise = eventToEdit.merchandise
         ? (eventToEdit.merchandise || []).map(it => ({
             ...it,
@@ -115,7 +109,6 @@ export default function CreateEvent(){
       setEvent({ ...eventToEdit, formFields, merchandise });
       setEditingId(eventToEdit._id);
     } else {
-      // Reset to empty event for new creation
       setEvent({ ...EMPTY_EVENT });
       setEditingId(null);
     }
@@ -123,14 +116,12 @@ export default function CreateEvent(){
 
   const setField = (k, v) => setEvent(prev => ({ ...prev, [k]: v }));
 
-  // ---------- Form builder helpers ----------
   const addField = () => {
     const nextPos = (event.formFields || []).length;
     const f = { position: nextPos, type: 'text', name: `field_${Date.now()}`, title: 'Untitled', choices: [], choicesText: '', required: false };
     setEvent(prev => ({ ...prev, formFields: [...(prev.formFields||[]), f] }));
   };
 
-  // ---------- Merchandise helpers ----------
   const addItem = () => {
     const newItem = {
       itemName: '',
@@ -155,7 +146,6 @@ export default function CreateEvent(){
     setEvent(prev => ({ ...prev, merchandise: arr }));
   };
 
-  // Auto-add one item when type becomes 'merchandise' and no items exist
   useEffect(() => {
     if (event.type === 'merchandise' && (!event.merchandise || event.merchandise.length === 0)) {
       addItem();
@@ -173,7 +163,7 @@ export default function CreateEvent(){
         stockQuantity: Number(it.stockQuantity) || 0,
         purchaseLimitPerParticipant: Number(it.purchaseLimitPerParticipant) || 1,
       }))
-      .filter(it => it.itemName.length > 0); // keep only items with a name
+      .filter(it => it.itemName.length > 0); 
   };
 
   const updateField = (index, field) => {
@@ -195,7 +185,6 @@ export default function CreateEvent(){
     setEvent(prev=> ({ ...prev, formFields: normalized }));
   };
 
-  // Convert choicesText → choices array for payload
   const prepareFormFields = (fields) =>
     (fields || []).map(f => ({
       ...f,
@@ -204,12 +193,10 @@ export default function CreateEvent(){
         : (f.choices || []),
     }));
 
-  // ---------- Validation ----------
   const validateBeforePublish = () => {
     if (!event.name) return 'Event name is required.';
     if (!event.description) return 'Event description is required.';
     if (!event.type) return 'Event type is required.';
-    // Only 'normal' events require form fields
     if (event.type === 'normal') {
       if (!event.formFields || event.formFields.length === 0) return 'At least one form field is required.';
       const names = event.formFields.map(f=>f.name);
@@ -222,7 +209,6 @@ export default function CreateEvent(){
       }
     }
 
-    // Validate merchandise items
     if (event.type === 'merchandise') {
       const prepared = prepareMerchandise(event.merchandise);
       if (!prepared || prepared.length === 0) return 'Merchandise events must define at least one item.';
@@ -235,11 +221,9 @@ export default function CreateEvent(){
     return null;
   };
 
-  // ---------- Save / Publish / Status ----------
   const saveDraft = async () => {
     setMessage(null); setLoading(true);
     try {
-      // Defensive: if type is merchandise ensure at least one valid item is present
       if (event.type === 'merchandise') {
         const merchPrepared = prepareMerchandise(event.merchandise);
         if (!merchPrepared || merchPrepared.length === 0) {
@@ -252,7 +236,6 @@ export default function CreateEvent(){
       const merchandisePayload = event.type === 'merchandise' ? prepareMerchandise(event.merchandise) : undefined;
       const payload = { ...event, formFields: prepareFormFields(event.formFields), merchandise: merchandisePayload };
       if (typeof payload.event_tags === 'string') payload.event_tags = payload.event_tags.split(',').map(s=>s.trim()).filter(Boolean);
-      // Normalize local datetime-local inputs to ISO (so saved values are consistent)
       const normalizedPayload = {
         ...payload,
         registration_deadline: toIsoIfLocal(payload.registration_deadline),
@@ -271,7 +254,6 @@ export default function CreateEvent(){
         setEditingId(saved._id);
         setMessage('Draft created');
       }
-      // Refresh the form with server data (including _id)
       const formFields = (saved.formFields || []).map(f => ({
         ...f,
         choicesText: (f.choices || []).join(', '),
@@ -330,7 +312,6 @@ export default function CreateEvent(){
       const merchandise = event.type === 'merchandise' ? prepareMerchandise(event.merchandise) : undefined;
       let saved;
       if (editingId) {
-        // Save all fields first, then publish
         const payload = { ...event, formFields: fields, merchandise, status: 'published' };
         const normalizedPayload = {
           ...payload,
@@ -395,14 +376,12 @@ export default function CreateEvent(){
     } finally { setLoading(false); }
   };
 
-  // ---------- Derived state ----------
   const status = event.status || 'draft';
   const isDraft = status === 'draft';
   const isPublished = status === 'published';
   const isLocked = ['ongoing','completed','closed'].includes(status);
   const disabledFormBuilder = event.form_locked || !isDraft;
 
-  // ---------- Render ----------
   return (
     <div className="create-event container" style={{ maxWidth: 800 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
@@ -432,7 +411,6 @@ export default function CreateEvent(){
         </div>
       )}
 
-      {/* Event fields */}
       <div>
         <label>Title</label>
         <input value={event.name||''} onChange={e=>setField('name', e.target.value)} disabled={!isDraft || isLocked} style={{ width: '100%' }} />
@@ -476,7 +454,6 @@ export default function CreateEvent(){
         </div>
       </div>
 
-      {/* Eligibility: open to all / IIIT-only */}
       <div style={{ display:'flex', gap:8, marginTop: 8 }}>
         <div style={{ flex: 1 }}>
           <label>Eligibility</label>
@@ -487,7 +464,6 @@ export default function CreateEvent(){
         </div>
       </div>
 
-      {/* Event tags - used for recommendations */}
       <div style={{ marginTop: 12 }}>
         <label style={{ display: 'block', marginBottom: 6 }}>Event Tags (select relevant areas)</label>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -515,7 +491,6 @@ export default function CreateEvent(){
         <div style={{ fontSize: 12, color: '#666', marginTop: 6 }}>These tags are used to recommend your event to participants with matching preferences.</div>
       </div>
 
-      {/* Merchandise details: only for merchandise events */}
       {event.type === 'merchandise' && (
         <section style={{ marginTop: 16, padding: 12, border: '1px solid #ccc', borderRadius: 6, background: '#fafafa' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -600,7 +575,6 @@ export default function CreateEvent(){
         </section>
       )}
 
-      {/* Form Builder: only shown for 'normal' events */}
       {event.type === 'normal' && (
         <section style={{ marginTop: 16 }}>
           <h3>Form Builder {disabledFormBuilder ? '(locked)' : ''}</h3>
@@ -621,7 +595,6 @@ export default function CreateEvent(){
             ))}
           </div>
 
-          {/* Preview */}
           {(event.formFields||[]).length > 0 && (
             <div style={{ marginTop: 12 }}>
               <h4>Preview</h4>
@@ -651,7 +624,6 @@ export default function CreateEvent(){
         </section>
       )}
 
-      {/* Actions */}
       <div style={{ marginTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         {isDraft && (
           <>
@@ -667,7 +639,6 @@ export default function CreateEvent(){
         )}
       </div>
 
-      {/* Status notes */}
       {isPublished && (
         <div style={{ marginTop: 12, fontSize: 13, color: '#666' }}>
           <strong>Published event:</strong> Only description, deadline (extend), and limit (increase) can be edited.

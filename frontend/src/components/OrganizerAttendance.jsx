@@ -3,41 +3,33 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Html5Qrcode } from 'html5-qrcode';
 import { eventAPI } from '../services/api';
 
-/* ── helpers ─────────────────────────────────────────────────────────────────── */
 function fmtDate(d) { return d ? new Date(d).toLocaleString() : '—'; }
 
-/* ── OrganizerAttendance ─────────────────────────────────────────────────────── */
 export default function OrganizerAttendance() {
   const { id: eventId } = useParams();
   const navigate = useNavigate();
 
-  /* data */
   const [event, setEvent] = useState(null);
   const [counts, setCounts] = useState({ total: 0, scanned: 0, remaining: 0 });
   const [regs, setRegs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  /* filters */
   const [search, setSearch] = useState('');
-  const [filterMode, setFilterMode] = useState('all'); // all | scanned | not_scanned
+  const [filterMode, setFilterMode] = useState('all'); 
 
-  /* scanner */
   const [scanning, setScanning] = useState(false);
-  const [scanResult, setScanResult] = useState(null); // { type, msg, reg? }
+  const [scanResult, setScanResult] = useState(null); 
   const scannerRef = useRef(null);
   const readerRef = useRef(null);
 
-  /* manual override */
-  const [overrideReg, setOverrideReg] = useState(null); // { _id, action }
+  const [overrideReg, setOverrideReg] = useState(null); 
   const [overrideReason, setOverrideReason] = useState('');
   const [overrideBusy, setOverrideBusy] = useState(false);
   const [overrideErr, setOverrideErr] = useState('');
 
-  /* audit detail toggle */
-  const [auditOpen, setAuditOpen] = useState(null); // regId
+  const [auditOpen, setAuditOpen] = useState(null); 
 
-  /* ── fetch attendance data ─────────────────────────────────────────────────── */
   const fetchData = useCallback(async () => {
     try {
       const r = await eventAPI.getEventAttendance(eventId, { search, filter: filterMode });
@@ -53,7 +45,6 @@ export default function OrganizerAttendance() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  /* ── camera scanner ────────────────────────────────────────────────────────── */
   const startScanner = async () => {
     setScanResult(null);
     try {
@@ -63,13 +54,11 @@ export default function OrganizerAttendance() {
         { facingMode: 'environment' },
         { fps: 10, qrbox: { width: 250, height: 250 } },
         async (decoded) => {
-          // pause scanning while processing
           try { await html5Qr.pause(true); } catch {}
           await handleDecodedQr(decoded, 'camera');
-          // resume after short delay
           setTimeout(() => { try { html5Qr.resume(); } catch {} }, 1500);
         },
-        () => {}, // ignore errors (no qr found in frame)
+        () => {}, 
       );
       setScanning(true);
     } catch (e) {
@@ -84,7 +73,6 @@ export default function OrganizerAttendance() {
     setScanning(false);
   };
 
-  /* handle file upload QR decode */
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -100,14 +88,12 @@ export default function OrganizerAttendance() {
     e.target.value = '';
   };
 
-  /* common: extract ticketId from decoded string and call scan API */
   const handleDecodedQr = async (decoded, method) => {
     let ticketId = null;
     try {
       const obj = JSON.parse(decoded);
       ticketId = obj.ticketId || null;
     } catch {
-      // maybe it's just the ticketId string
       ticketId = decoded;
     }
     if (!ticketId) { setScanResult({ type: 'error', msg: 'Invalid QR data' }); return; }
@@ -115,7 +101,7 @@ export default function OrganizerAttendance() {
     try {
       const r = await eventAPI.scanTicket(eventId, ticketId, method);
       if (r?.data?.success) {
-        const result = r.data.result; // 'scanned' | 'duplicate'
+        const result = r.data.result; 
         const reg = r.data.registration || {};
         if (result === 'scanned') {
           setScanResult({ type: 'success', msg: `✓ ${reg.participant?.name || ''} checked in`, reg });
@@ -124,7 +110,7 @@ export default function OrganizerAttendance() {
         } else {
           setScanResult({ type: 'info', msg: r.data.message || result });
         }
-        fetchData(); // refresh counts
+        fetchData(); 
       } else {
         setScanResult({ type: 'error', msg: r.data?.error || 'Scan failed' });
       }
@@ -133,7 +119,6 @@ export default function OrganizerAttendance() {
     }
   };
 
-  /* ── manual override ───────────────────────────────────────────────────────── */
   const submitOverride = async () => {
     if (!overrideReg) return;
     if (!overrideReason.trim()) { setOverrideErr('Reason is required'); return; }
@@ -146,7 +131,6 @@ export default function OrganizerAttendance() {
     finally { setOverrideBusy(false); }
   };
 
-  /* ── CSV export ────────────────────────────────────────────────────────────── */
   const exportCsv = async () => {
     try {
       const r = await eventAPI.exportAttendanceCsv(eventId);
@@ -160,10 +144,8 @@ export default function OrganizerAttendance() {
     } catch (e) { alert('Export failed: ' + (e.response?.data?.error || e.message)); }
   };
 
-  /* cleanup scanner on unmount */
   useEffect(() => () => { try { if (readerRef.current) readerRef.current.stop(); } catch {} }, []);
 
-  /* ── render ────────────────────────────────────────────────────────────────── */
   if (loading) return <div style={{ padding: 20 }}>Loading attendance…</div>;
   if (error && !event) return <div style={{ padding: 20, color: 'red' }}>{error}</div>;
 
@@ -176,22 +158,17 @@ export default function OrganizerAttendance() {
         <button onClick={() => navigate(-1)}>← Back</button>
       </div>
 
-      {/* counts */}
       <div style={{ display: 'flex', gap: 24, marginBottom: 16 }}>
         <div><strong>{counts.total}</strong> Total</div>
         <div style={{ color: 'green' }}><strong>{counts.scanned}</strong> Scanned</div>
         <div style={{ color: '#c00' }}><strong>{counts.remaining}</strong> Remaining</div>
       </div>
 
-      {/* two-column: scanner | list */}
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-        {/* ── scanner column ──────────────────────────────────────────────────── */}
         <div style={{ flex: '0 0 320px', maxWidth: 350 }}>
           <h4 style={{ marginTop: 0 }}>QR Scanner</h4>
 
-          {/* camera area */}
           <div id="qr-reader" ref={scannerRef} style={{ width: '100%', marginBottom: 8 }}></div>
-          {/* hidden div for file-based scanning */}
           <div id="qr-reader-file" style={{ display: 'none' }}></div>
 
           <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
@@ -212,7 +189,6 @@ export default function OrganizerAttendance() {
           )}
         </div>
 
-        {/* ── list column ─────────────────────────────────────────────────────── */}
         <div style={{ flex: 1, minWidth: 400 }}>
           <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
             <input placeholder="Search name, email, ticket…" value={search} onChange={e => setSearch(e.target.value)} style={{ flex: 1, minWidth: 160 }} />
@@ -286,7 +262,6 @@ export default function OrganizerAttendance() {
         </div>
       </div>
 
-      {/* manual override modal */}
       {overrideReg && (
         <div onClick={() => setOverrideReg(null)}
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}>

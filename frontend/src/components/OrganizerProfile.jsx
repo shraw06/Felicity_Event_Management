@@ -14,7 +14,6 @@ export default function OrganizerProfile() {
     discordWebhook: '',
   });
 
-  // Password reset request state
   const [resetReason, setResetReason] = useState('');
   const [resetMsg, setResetMsg] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
@@ -49,7 +48,6 @@ export default function OrganizerProfile() {
           discordWebhook: org.discordWebhook || '',
         });
 
-        // Fetch existing reset requests
         try {
           const rr = await organizerAPI.getMyResetRequests();
           if (rr?.data?.success) setMyRequests(rr.data.data);
@@ -74,7 +72,6 @@ export default function OrganizerProfile() {
     setMessage(null);
     try {
       const email = form.email;
-      // attempt update; backend may not expose PUT for organizers yet
       await organizerAPI.updateOrganizer(email, {
         first_name: form.first_name,
         last_name: form.last_name,
@@ -146,7 +143,6 @@ export default function OrganizerProfile() {
         <button className="btn-submit" onClick={handleSave}>Save Profile</button>
       </div>
 
-      {/* ── Password Reset Request ──────────────────────────────────────────── */}
       <hr style={{ margin: '24px 0' }} />
       <h3>Request Password Reset</h3>
       <p style={{ fontSize: 13, color: '#666' }}>
@@ -185,7 +181,6 @@ export default function OrganizerProfile() {
       </button>
       {resetMsg && <div style={{ marginTop: 6, color: resetMsg.includes('success') ? '#2e7d32' : '#c00' }}>{resetMsg}</div>}
 
-      {/* Previous requests */}
       {myRequests.length > 0 && (
         <div style={{ marginTop: 16 }}>
           <h4>Your Reset Requests</h4>

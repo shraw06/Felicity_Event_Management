@@ -7,8 +7,7 @@ const signToken = (adminId) => {
   });
 }
 
-// @desc  Get a single admin
-// @route GET /api/admins/:email
+
 const getAdmin = async (req, res) => {
   try {
     const admin = await Admin.findOne({ email: req.params.email });
@@ -32,8 +31,7 @@ const getAdmin = async (req, res) => {
   }
 };
 
-// @desc  login admin
-// @route POST /api/admins/login
+
 const loginAdmin = async (req, res) => {
   const { email, password } = req.body;
 

@@ -18,7 +18,7 @@ const EventSchema = new mongoose.Schema(
       trim: true,
     },
     non_iiit_eligibility: {
-      type: Boolean, // true if non-IIIT + IIIT participants are eligible, false if only IIIT participants are eligible
+      type: Boolean, 
       required: [true, 'Please specify if the participant is eligible'],
       default: false,
     },
@@ -49,7 +49,6 @@ const EventSchema = new mongoose.Schema(
         type: [String]
     }
     ,
-    // Custom registration form fields
     formFields: {
       type: [
         new mongoose.Schema(
@@ -70,13 +69,11 @@ const EventSchema = new mongoose.Schema(
       default: undefined,
     },
 
-    // once true, formFields cannot be modified
     form_locked: {
       type: Boolean,
       default: false,
     },
 
-    // Merchandise items (only for events of type 'merchandise')
     merchandise: {
       type: [
         new mongoose.Schema(
@@ -93,7 +90,6 @@ const EventSchema = new mongoose.Schema(
       default: undefined,
     },
 
-    // event lifecycle
     status: {
       type: String,
       enum: ['draft', 'published', 'ongoing', 'completed', 'closed'],
@@ -101,23 +97,19 @@ const EventSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true, // Adds createdAt and updatedAt
+    timestamps: true, 
   }
 );
 
-// Validate formFields: name uniqueness within same event and choices presence for
-// dropdown/checkbox/radio types. This validator runs on save and on create.
 EventSchema.path('formFields').validate(function (formFields) {
-  if (!formFields) return true; // nothing to validate
+  if (!formFields) return true; 
 
-  // name uniqueness
   const names = formFields.map((f) => f.name);
   const uniqueNames = new Set(names);
   if (uniqueNames.size !== names.length) {
     return false;
   }
 
-  // choices requirement
   for (const f of formFields) {
     const needsChoices = ['dropdown', 'checkbox', 'radio'].includes(f.type);
     if (needsChoices) {
@@ -130,7 +122,6 @@ EventSchema.path('formFields').validate(function (formFields) {
   return true;
 }, 'Invalid formFields: name must be unique and choices are required for dropdown/checkbox/radio');
 
-// Validate merchandise structure when present
 EventSchema.path('merchandise').validate(function (merch) {
   if (!merch) return true;
 
@@ -148,20 +139,17 @@ EventSchema.path('merchandise').validate(function (merch) {
   return true;
 }, 'Invalid merchandise: each item must have a name, valid options, non-negative stock and purchase limit');
 
-// Prevent modifications to formFields when form_locked is true or status is published.
-// This covers findOneAndUpdate flows (typical for API updates).
+
 EventSchema.pre('findOneAndUpdate', async function (next) {
   try {
     const update = this.getUpdate();
     if (!update) return next();
 
-    // check if formFields is being changed
     const isChangingForm =
       Object.prototype.hasOwnProperty.call(update, 'formFields') ||
       (update.$set && Object.prototype.hasOwnProperty.call(update.$set, 'formFields')) ||
       (update.$push && Object.prototype.hasOwnProperty.call(update.$push, 'formFields'));
 
-    // check if merchandise is being changed
     const isChangingMerch =
       Object.prototype.hasOwnProperty.call(update, 'merchandise') ||
       (update.$set && Object.prototype.hasOwnProperty.call(update.$set, 'merchandise')) ||
@@ -169,15 +157,12 @@ EventSchema.pre('findOneAndUpdate', async function (next) {
 
     if (!isChangingForm && !isChangingMerch) return next();
 
-    // fetch current doc
     const docToUpdate = await this.model.findOne(this.getQuery());
     if (!docToUpdate) return next();
 
-    // if the event is locked, disallow edits to either formFields or merchandise
     if (docToUpdate.form_locked) {
       return next(new Error('Event form is locked and cannot be modified'));
     }
-    // prevent modifications when not in draft
     if (docToUpdate.status !== 'draft') {
       return next(new Error('Event not in draft state; form/merchandise cannot be modified'));
     }
@@ -188,11 +173,9 @@ EventSchema.pre('findOneAndUpdate', async function (next) {
   }
 });
 
-// Also prevent direct save() changes if the doc is already locked/published and
-// formFields changed.
+
 EventSchema.pre('save', async function (next) {
   try {
-    // if neither formFields nor merchandise changed, continue
     if (!this.isModified('formFields') && !this.isModified('merchandise')) return next();
     if (this.form_locked) return next(new Error('Event form is locked and cannot be modified'));
     if (this.isNew) return next();
@@ -206,25 +189,20 @@ EventSchema.pre('save', async function (next) {
   }
 });
 
-// Ensure only appropriate fields exist depending on event.type
 EventSchema.pre('validate', function (next) {
   try {
-    // If normal event, allow formFields but disallow merchandise
     if (this.type === 'normal') {
       if (this.merchandise && Array.isArray(this.merchandise) && this.merchandise.length > 0) {
         return next(new Error('Normal events cannot have merchandise fields'));
       }
     } else if (this.type === 'merchandise') {
-      // If merchandise event, require merchandise array and disallow formFields
       if (!this.merchandise || !Array.isArray(this.merchandise) || this.merchandise.length === 0) {
-        // console.log("merchandise: ", this.merchandise);
         return next(new Error('Merchandise events must define merchandise items'));
       }
       if (this.formFields && Array.isArray(this.formFields) && this.formFields.length > 0) {
         return next(new Error('Merchandise events cannot have a registration form'));
       }
     } else {
-      // other types: disallow formFields
       if (this.formFields && Array.isArray(this.formFields) && this.formFields.length > 0) {
         return next(new Error('Only normal events may have a registration form'));
       }

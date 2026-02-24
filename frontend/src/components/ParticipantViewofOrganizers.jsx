@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { organizerAPI, participantAPI } from '../services/api';
 
-// ParticipantViewofOrganizers: lists approved organizers and allows follow/unfollow
 export default function ParticipantViewofOrganizers() {
   const [organizers, setOrganizers] = useState([]);
-  const [following, setFollowing] = useState([]); // array of organizer ids (strings)
+  const [following, setFollowing] = useState([]); 
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState(null);
   const [message, setMessage] = useState(null);
@@ -24,7 +23,6 @@ export default function ParticipantViewofOrganizers() {
           const pRes = await participantAPI.getParticipant(email);
           const participant = pRes && pRes.data && pRes.data.data ? pRes.data.data : null;
           const prefFollowing = (participant && participant.preferences && participant.preferences.following) || [];
-          // normalize to strings of ObjectId
           setFollowing(prefFollowing.map(String));
         }
       } catch (err) {
@@ -46,12 +44,10 @@ export default function ParticipantViewofOrganizers() {
       return;
     }
 
-    // optimistic update
     const isFollowing = following.includes(orgId);
     const next = isFollowing ? following.filter(x => x !== orgId) : [...following, orgId];
     setFollowing(next);
 
-    // persist: fetch current participant to avoid overwriting areas
     try {
       setSavingId(orgId);
       const pRes = await participantAPI.getParticipant(email);
@@ -63,7 +59,6 @@ export default function ParticipantViewofOrganizers() {
       setMessage(isFollowing ? 'Unfollowed' : 'Following');
     } catch (err) {
       console.error('Failed to update follow state', err);
-      // revert optimistic
       setFollowing(prev => (prev.includes(orgId) ? prev.filter(x => x !== orgId) : [...prev, orgId]));
       setMessage('Failed to update follow state');
     } finally {

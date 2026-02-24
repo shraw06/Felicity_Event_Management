@@ -4,7 +4,6 @@ const nodemailer = require('nodemailer');
 const OrganizerPasswordReset = require('../models/OrganizerPasswordReset');
 const Organizer = require('../models/Organizer');
 
-/* ── helper: create nodemailer transporter (matches existing project pattern) ── */
 const _getTransporter = () =>
   nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -13,17 +12,11 @@ const _getTransporter = () =>
     auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
   });
 
-/* ── helper: generate a secure random password (12 alphanumeric chars) ──────── */
 const _generatePassword = () => {
   return crypto.randomBytes(9).toString('base64url').substring(0, 12); // URL-safe, 12 chars
 };
 
-/* ================================================================
-   POST /api/organizers/reset-request
-   Organizer submits a password reset request
-   Body: { reason }
-   Auth: protectOrganizer
-   ================================================================ */
+
 const createResetRequest = async (req, res) => {
   try {
     const organizer = req.organizer;
@@ -33,7 +26,6 @@ const createResetRequest = async (req, res) => {
       return res.status(400).json({ success: false, error: 'Reason is required' });
     }
 
-    // Check for existing pending request
     const existing = await OrganizerPasswordReset.findOne({
       organizerId: organizer._id,
       status: 'Pending',
@@ -69,11 +61,7 @@ const createResetRequest = async (req, res) => {
   }
 };
 
-/* ================================================================
-   GET /api/admin/organizer-reset-requests?status=Pending
-   Admin lists all password reset requests (optional status filter)
-   Auth: protectAdmin
-   ================================================================ */
+
 const getResetRequests = async (req, res) => {
   try {
     const filter = {};
@@ -92,11 +80,7 @@ const getResetRequests = async (req, res) => {
   }
 };
 
-/* ================================================================
-   GET /api/admin/organizer-reset-requests/:id
-   Admin views single request with full history
-   Auth: protectAdmin
-   ================================================================ */
+
 const getResetRequestById = async (req, res) => {
   try {
     const request = await OrganizerPasswordReset.findById(req.params.id).lean();
@@ -108,13 +92,7 @@ const getResetRequestById = async (req, res) => {
   }
 };
 
-/* ================================================================
-   PATCH /api/admin/organizer-reset-requests/:id/approve
-   Admin approves → generate password, hash & update Organizer,
-   return plaintext in response, email plaintext to admin
-   Body: { comments? }
-   Auth: protectAdmin
-   ================================================================ */
+
 const approveResetRequest = async (req, res) => {
   try {
     const request = await OrganizerPasswordReset.findById(req.params.id);
@@ -123,20 +101,16 @@ const approveResetRequest = async (req, res) => {
       return res.status(400).json({ success: false, error: `Request already ${request.status}` });
     }
 
-    // Generate new password
     const plaintext = _generatePassword();
 
-    // Hash with bcrypt (matching Organizer model's approach)
     const salt = await bcrypt.genSalt(10);
     const hashed = await bcrypt.hash(plaintext, salt);
 
-    // Update Organizer's password directly (bypass pre-save hook since we already hashed)
     const organizer = await Organizer.findById(request.organizerId);
     if (!organizer) return res.status(404).json({ success: false, error: 'Organizer not found' });
 
     await Organizer.findByIdAndUpdate(organizer._id, { password: hashed });
 
-    // Update request
     request.status = 'Approved';
     request.adminId = req.admin._id;
     request.adminComments = (req.body.comments || '').trim();
@@ -148,36 +122,13 @@ const approveResetRequest = async (req, res) => {
     });
     await request.save();
 
-    // // Email the new password to organizer's contact email (and CC admin)
-    // try {
-    //   const transporter = _getTransporter();
-    //   const recipients = [];
-
-    //   // primary: organizer's contact email if available, otherwise fall back to the organizer login email
-    //   if (organizer.contact_email && organizer.contact_email.trim()) recipients.push(organizer.contact_email.trim());
-    //   else if (request.organizerEmail) recipients.push(request.organizerEmail);
-
-    //   // also CC the approving admin for record (optional copy)
-    //   if (req.admin && req.admin.email) recipients.push(req.admin.email);
-
-    // Prepare email options (don't send synchronously) so we can return the plaintext immediately
+   
     const recipients = [];
     if (organizer.contact_email && organizer.contact_email.trim()) recipients.push(organizer.contact_email.trim());
     else if (request.organizerEmail) recipients.push(request.organizerEmail);
     if (req.admin && req.admin.email) recipients.push(req.admin.email);
 
-    //   await transporter.sendMail({
-    //     from: process.env.EMAIL_FROM || process.env.SMTP_USER,
-    //     to: recipients.join(','),
-    //     subject: `Password Reset Approved – ${request.clubName}`,
-    //     html: `<p>Your password reset for <strong>${request.clubName}</strong> has been approved by ${req.admin?.email || 'an administrator'}.</p>
-    //            <p><strong>New Temporary Password:</strong> <code>${plaintext}</code></p>
-    //            <p>Please log in and change your password immediately. The admin has been copied on this email.</p>`,
-    //   });
-    // } catch (mailErr) {
-    //   console.error('Failed to email new password to organizer/admin', mailErr);
-    //   // Don't fail the request — admin still gets plaintext in the response
-    // }
+    
 
     const mailOptions = {
       from: process.env.EMAIL_FROM || process.env.SMTP_USER,
@@ -188,7 +139,6 @@ const approveResetRequest = async (req, res) => {
              <p>Please log in and change your password immediately. The admin has been copied on this email.</p>`,
     };
 
-    // Return plaintext once (never stored in DB) immediately
     res.json({
       success: true,
       data: {
@@ -196,7 +146,6 @@ const approveResetRequest = async (req, res) => {
         plaintextPassword: plaintext,
       },
     });
-    // Send the email asynchronously (do not await) — log errors but don't affect response
     try {
       const transporter = _getTransporter();
       transporter.sendMail(mailOptions).catch((mailErr) => {
@@ -211,12 +160,7 @@ const approveResetRequest = async (req, res) => {
   }
 };
 
-/* ================================================================
-   PATCH /api/admin/organizer-reset-requests/:id/reject
-   Admin rejects with comments
-   Body: { comments }
-   Auth: protectAdmin
-   ================================================================ */
+
 const rejectResetRequest = async (req, res) => {
   try {
     const request = await OrganizerPasswordReset.findById(req.params.id);
@@ -248,11 +192,7 @@ const rejectResetRequest = async (req, res) => {
   }
 };
 
-/* ================================================================
-   GET /api/organizers/my-reset-requests
-   Organizer views their own requests
-   Auth: protectOrganizer
-   ================================================================ */
+
 const getMyResetRequests = async (req, res) => {
   try {
     const requests = await OrganizerPasswordReset.find({

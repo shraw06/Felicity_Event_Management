@@ -84,7 +84,6 @@ const ParticipantSignup = ({ onSignup }) => {
             };
             const res = await participantAPI.createParticipant(payload);
             setSuccessMsg('Signup successful! Redirecting...');
-            // persist token and email so preferences page can update the participant
             const token = res?.data?.token;
             const created = res?.data?.data;
             if (token) localStorage.setItem('token', token);
@@ -101,7 +100,6 @@ const ParticipantSignup = ({ onSignup }) => {
                 confirmPassword: '',
             });
             if (onSignup) onSignup(res.data);
-            // navigate to preferences after short delay
             setTimeout(() => navigate('/preferences'), 800);
         } catch (err) {
             const serverMsg = err?.response?.data?.error || err.message;

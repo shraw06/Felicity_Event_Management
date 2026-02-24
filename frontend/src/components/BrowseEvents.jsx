@@ -3,26 +3,23 @@ import { eventAPI, organizerAPI, participantAPI } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import Fuse from 'fuse.js';
 
-// BrowseEvents: fuzzy search + filters + Trending (Top 5/24h) sidebar
 const BrowseEvents = () => {
     const navigate = useNavigate();
 
-    const [originalEvents, setOriginalEvents] = useState([]); // master list
-    const [events, setEvents] = useState([]); // displayed list
+    const [originalEvents, setOriginalEvents] = useState([]); 
+    const [events, setEvents] = useState([]); 
     const [organizers, setOrganizers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Filters
     const [selectedType, setSelectedType] = useState('all');
-    const [eligibility, setEligibility] = useState('all'); // all | iiit_only | non_iiit
+    const [eligibility, setEligibility] = useState('all'); 
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [followedOnly, setFollowedOnly] = useState(false);
     const [followedOrgs, setFollowedOrgs] = useState([]);
 
-    // Trending state
-    const [trending, setTrending] = useState([]); // array of { event, count }
+    const [trending, setTrending] = useState([]); 
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -37,11 +34,9 @@ const BrowseEvents = () => {
             const organizersList = (orgRes && orgRes.data && orgRes.data.data) ? orgRes.data.data : [];
             const trendingRaw = (trendingRes && trendingRes.data && trendingRes.data.data) ? trendingRes.data.data : [];
 
-            // map organizers by id for quick lookup
             const orgMap = {};
             organizersList.forEach(o => { orgMap[o._id] = o; });
 
-            // augment events with organizer metadata used by Fuse
             const eventsAug = eventsRaw.map(ev => {
                 const org = orgMap[ev.organizer_id] || {};
                 return {
@@ -51,7 +46,6 @@ const BrowseEvents = () => {
                 };
             });
 
-            // augment trending entries with organizer info (trendingRaw elements are { event, count })
             const trendingAug = trendingRaw.map(t => {
                 const ev = t.event || {};
                 const org = orgMap[ev.organizer_id] || {};
@@ -74,8 +68,6 @@ const BrowseEvents = () => {
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
-    // load followed organizers from preferences (localStorage)
-    // load participant preferences from backend (if logged in)
     useEffect(() => {
         let mounted = true;
         (async () => {
@@ -87,17 +79,13 @@ const BrowseEvents = () => {
                 if (res && res.data && res.data.data) {
                     const p = res.data.data;
                     const prefs = p.preferences || {};
-                    // store areas and following
                     if (Array.isArray(prefs.areas)) {
-                        // normalize strings
                         setFollowedOrgs(prev => prev);
-                        // we'll use participantPrefs for ordering
                     }
                     setFollowedOrgs(Array.isArray(prefs.following) ? prefs.following.map(String) : []);
                     setParticipantPrefs(prefs);
                 }
             } catch (err) {
-                // ignore
             }
         })();
         return () => { mounted = false; };
@@ -105,7 +93,6 @@ const BrowseEvents = () => {
 
     const [participantPrefs, setParticipantPrefs] = useState(null);
 
-    // create fuse index
     const fuse = useMemo(() => new Fuse(originalEvents, {
         keys: ['name', 'organizer_name', 'type', 'event_tags'],
         threshold: 0.4,
@@ -114,11 +101,9 @@ const BrowseEvents = () => {
         includeScore: true,
     }), [originalEvents]);
 
-    // combined search + filters effect
     useEffect(() => {
         let working = originalEvents.slice();
 
-        // search
         if (searchTerm) {
             try {
                 const results = fuse.search(searchTerm);
@@ -128,19 +113,16 @@ const BrowseEvents = () => {
             }
         }
 
-        // type filter
         if (selectedType && selectedType !== 'all') {
             working = working.filter(ev => String(ev.type || '').toLowerCase() === String(selectedType).toLowerCase());
         }
 
-        // eligibility
         if (eligibility === 'iiit_only') {
             working = working.filter(ev => ev.non_iiit_eligibility === false || typeof ev.non_iiit_eligibility === 'undefined');
         } else if (eligibility === 'non_iiit') {
             working = working.filter(ev => ev.non_iiit_eligibility === true);
         }
 
-        // date range (inclusive overlap)
         if (dateFrom) {
             const from = new Date(dateFrom);
             working = working.filter(ev => new Date(ev.event_end_date) >= from);
@@ -150,25 +132,20 @@ const BrowseEvents = () => {
             working = working.filter(ev => new Date(ev.event_start_date) <= to);
         }
 
-        // followed-only
         if (followedOnly) {
             working = working.filter(ev => followedOrgs.includes(String(ev.organizer_id)));
         }
 
-        // If participant preferences exist, score events to favor matches
         if (participantPrefs) {
             const areas = Array.isArray(participantPrefs.areas) ? participantPrefs.areas.map(a => String(a).toLowerCase()) : [];
             const following = Array.isArray(participantPrefs.following) ? participantPrefs.following.map(String) : [];
 
             const scored = working.map(ev => {
                 let score = 0;
-                // tag/area match
                 const tags = Array.isArray(ev.event_tags) ? ev.event_tags.map(t => String(t).toLowerCase()) : [];
                 const tagMatches = tags.filter(t => areas.includes(t)).length;
                 score += tagMatches * 10;
-                // organizer followed
                 if (following.includes(String(ev.organizer_id))) score += 5;
-                // prefer events starting sooner
                 const start = ev.event_start_date ? new Date(ev.event_start_date).getTime() : Infinity;
                 return { ev, score, start };
             });
@@ -197,7 +174,6 @@ const BrowseEvents = () => {
         <div style={{ padding: 12 }}>
             <h2>Browse Events</h2>
 
-            {/* Filters row */}
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 14, alignItems: 'center' }}>
                 <input
                     placeholder="Search events or organizers..."
@@ -243,7 +219,6 @@ const BrowseEvents = () => {
                 <button onClick={onReset} style={{ padding: '6px 10px' }}>Reset</button>
             </div>
 
-            {/* Main grid: results + trending */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 18 }}>
                 <div>
                     {loading ? (
@@ -271,7 +246,6 @@ const BrowseEvents = () => {
                     )}
                 </div>
 
-                {/* Sidebar: Trending */}
                 <aside style={{ border: '1px solid #eee', padding: 12, borderRadius: 8, background: '#fff' }}>
                     <h3 style={{ marginTop: 0 }}>Trending (Top 5/24h)</h3>
                     {trending.length === 0 ? (

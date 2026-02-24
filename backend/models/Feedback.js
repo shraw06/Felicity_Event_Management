@@ -11,7 +11,7 @@ const feedbackSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Participant',
       required: true,
-      select: false, // hidden by default — keeps feedback anonymous
+      select: false, 
     },
     rating: {
       type: Number,
@@ -28,10 +28,10 @@ const feedbackSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// One feedback per participant per event
+
 feedbackSchema.index({ eventId: 1, participantId: 1 }, { unique: true });
 
-// Fast lookup for aggregation / filtering by event
+
 feedbackSchema.index({ eventId: 1, rating: 1 });
 
 module.exports = mongoose.model('Feedback', feedbackSchema);

@@ -18,7 +18,7 @@ const { protectAdmin } = require('../middleware/authMiddleware');
 router.route('/login')
   .post(loginAdmin);
 
-// ── Password reset request management (admin only) ─────────────────────────
+//  Password reset request management (admin only) 
 router.route('/organizer-reset-requests')
   .get(protectAdmin, getResetRequests);
 

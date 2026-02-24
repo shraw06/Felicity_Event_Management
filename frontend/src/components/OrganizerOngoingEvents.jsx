@@ -135,7 +135,6 @@ export default function OrganizerOngoingEvents() {
 
   useEffect(() => { loadEvents(); }, [loadEvents]);
 
-  // fetch analytics for published ongoing events
   useEffect(() => {
     let cancelled = false;
     const fetchForPublished = async () => {
@@ -160,7 +159,6 @@ export default function OrganizerOngoingEvents() {
     return () => { cancelled = true; };
   }, [events]);
 
-  // attendance for started events
   useEffect(() => {
     let cancelled = false;
     const loadAttendance = async () => {

@@ -1,9 +1,3 @@
-// Editable Fields: First Name, Last Name, Contact Number, College/Organization Name,
-// Selected Interests, Followed Clubs
-// • Non-Editable Fields: Email Address, Participant Type (IIIT / Non-IIIT)
-// • Security Settings: Provides a password reset or change mechanism with appropriate au-
-// thentication and validation, allowing flexibility in implementation design.
-
 import React, { useEffect, useState } from 'react';
 import { participantAPI } from '../services/api';
 
@@ -28,18 +22,16 @@ const ParticipantProfile = () => {
         contact_number: '',
         college_name: '',
         areas: [],
-        following: [], // organizer ids
+        following: [], 
         email: '',
         iiit_participant: false,
     });
 
-    // password change state
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [changingPassword, setChangingPassword] = useState(false);
 
-    // organizers list removed: follow/unfollow moved out of participant profile
 
     useEffect(() => {
         const init = async () => {
@@ -87,7 +79,6 @@ const ParticipantProfile = () => {
         }));
     };
 
-    // follow/unfollow removed from profile UI
 
     const handleSaveProfile = async () => {
         setMessage(null);
@@ -124,11 +115,9 @@ const ParticipantProfile = () => {
         }
         setChangingPassword(true);
         try {
-            // verify current password by logging in
             const email = form.email;
             await participantAPI.login({ email, password: currentPassword });
 
-            // if login succeeds, update password
             await participantAPI.updateParticipant(email, { password: newPassword });
 
             setMessage('Password changed successfully.');
@@ -195,7 +184,6 @@ const ParticipantProfile = () => {
                 </div>
             </section>
 
-            {/* Follow/unfollow organizers removed from profile page */}
 
             <div style={{ marginTop: 18 }}>
                 <button className="btn-submit" onClick={handleSaveProfile}>Save Profile</button>

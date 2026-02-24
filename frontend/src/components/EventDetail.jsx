@@ -3,7 +3,6 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { eventAPI, participantAPI } from '../services/api';
 import Forum from './Forum';
 
-/* ── Star-rating helper ─────────────────────────────────────────────────────── */
 const StarRating = ({ value, onChange, readonly }) => {
   const [hover, setHover] = useState(0);
   return (
@@ -23,7 +22,6 @@ const StarRating = ({ value, onChange, readonly }) => {
   );
 };
 
-/* ── Feedback widget (shown to participants after event ends) ───────────────── */
 const FeedbackWidget = ({ eventId, event, registered }) => {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
@@ -32,7 +30,6 @@ const FeedbackWidget = ({ eventId, event, registered }) => {
   const [msg, setMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // Only show after event end date
   const eventEnded = event.event_end_date && new Date(event.event_end_date) <= new Date();
   const canFeedback = registered && eventEnded;
 
@@ -48,7 +45,7 @@ const FeedbackWidget = ({ eventId, event, registered }) => {
           setRating(r.data.data.rating);
           setComment(r.data.data.comment || '');
         }
-      } catch { /* no existing feedback */ }
+      } catch {  }
       finally { if (m) setLoading(false); }
     })();
     return () => { m = false; };
@@ -102,7 +99,6 @@ const FeedbackWidget = ({ eventId, event, registered }) => {
   );
 };
 
-/* ── Small merchandise-order sub-component ──────────────────────────────────── */
 const MerchandiseOrderSection = ({ eventId, canPurchase, purchaseBlockedReason, onOrderCreated }) => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -127,7 +123,7 @@ const MerchandiseOrderSection = ({ eventId, canPurchase, purchaseBlockedReason, 
             } catch { setOrder(reg); }
           }
         }
-      } catch { /* not registered */ }
+      } catch {  }
       finally { if (m) setLoading(false); }
     })();
     return () => { m = false; };
@@ -150,7 +146,7 @@ const MerchandiseOrderSection = ({ eventId, canPurchase, purchaseBlockedReason, 
     setMsg('');
     try {
       const r = await eventAPI.createOrder(eventId);
-      if (r?.data?.success) { setOrder(r.data.data); onOrderCreated && onOrderCreated(); setMsg('Order placed — upload proof below.'); }
+      if (r?.data?.success) { setOrder(r.data.data); onOrderCreated && onOrderCreated(); setMsg('Order placed - upload proof below.'); }
       else setMsg(r.data?.error || 'Failed');
     } catch (e) { setMsg(e.response?.data?.error || e.message); }
   };
@@ -172,7 +168,6 @@ const MerchandiseOrderSection = ({ eventId, canPurchase, purchaseBlockedReason, 
 
   if (loading) return <div>Checking order…</div>;
 
-  /* no order yet */
   if (!order) return (
     <div>
       {canPurchase
@@ -184,7 +179,6 @@ const MerchandiseOrderSection = ({ eventId, canPurchase, purchaseBlockedReason, 
 
   const ps = order.payment_status;
 
-  /* awaiting_payment or rejected → show upload */
   if (ps === 'awaiting_payment' || ps === 'rejected') return (
     <div style={{ border: '1px solid #ccc', padding: 10, marginTop: 6 }}>
       <div><strong>Status:</strong> {ps === 'rejected' ? 'Rejected' : 'Awaiting Payment'}</div>
@@ -201,7 +195,6 @@ const MerchandiseOrderSection = ({ eventId, canPurchase, purchaseBlockedReason, 
     </div>
   );
 
-  /* pending_approval */
   if (ps === 'pending_approval') return (
     <div style={{ border: '1px solid #ccc', padding: 10, marginTop: 6 }}>
       <div><strong>Status:</strong> Pending Approval</div>
@@ -209,7 +202,6 @@ const MerchandiseOrderSection = ({ eventId, canPurchase, purchaseBlockedReason, 
     </div>
   );
 
-  /* successful → show ticket */
   if (ps === 'successful') return (
     <div style={{ border: '1px solid #ccc', padding: 10, marginTop: 6 }}>
       <div><strong>Status:</strong> Approved ✓</div>
@@ -236,7 +228,6 @@ const EventDetail = () => {
   const [participantProfile, setParticipantProfile] = useState(null);
   const [activeTab, setActiveTab] = useState('details'); // 'details' | 'forum'
 
-  // If navigated here with a #msg-<id> hash (from notification), open forum tab and highlight
   useEffect(() => {
     if (location.hash && location.hash.startsWith('#msg-')) {
       setActiveTab('forum');
@@ -252,7 +243,6 @@ const EventDetail = () => {
         if (!mounted) return;
         if (res && res.data && res.data.success) {
           setEventData(res.data.data);
-          // if participant is logged in, try to fetch their profile to check IIIT status
           try {
             const email = localStorage.getItem('participantEmail');
             if (email) {
@@ -260,9 +250,7 @@ const EventDetail = () => {
               if (pRes && pRes.data && pRes.data.data) setParticipantProfile(pRes.data.data);
             }
           } catch (e) {
-            // ignore profile fetch errors
           }
-          // check whether current participant is registered
           try {
             const r = await eventAPI.getRegistration(id);
             if (r && r.data && r.data.success && r.data.data) {
@@ -280,7 +268,6 @@ const EventDetail = () => {
               }
             }
           } catch (e) {
-            // ignore — participant may be unauthenticated
           }
         } else {
           setError((res && res.data && res.data.error) || 'Failed to load event');
@@ -303,7 +290,6 @@ const EventDetail = () => {
 
   const isParticipantIIIT = !!participantProfile?.iiit_participant;
 
-  // Helpers for blocking rules
   const now = new Date();
   const deadlinePassed = event.registration_deadline ? new Date(event.registration_deadline) < now : false;
   const limitReached = typeof event.registration_limit === 'number' && event.registration_limit > 0 && (registrationCount >= event.registration_limit);
@@ -327,11 +313,9 @@ const EventDetail = () => {
     }
   }
 
-  // For merchandise: allow purchase if at least one item has stock > 0
   let canPurchase = false;
   let purchaseBlockedReason = null;
   if (eventType === 'merchandise') {
-    // If overall registration limit is reached, block purchases as well
     if (limitReached) {
       purchaseBlockedReason = 'Registration limit has been reached';
     } else if (event.non_iiit_eligibility === false && !isParticipantIIIT) {
@@ -340,7 +324,7 @@ const EventDetail = () => {
       const anyInStock = Array.isArray(event.merchandise) && event.merchandise.some(it => typeof it.stockQuantity === 'number' && it.stockQuantity > 0);
       if (!anyInStock) purchaseBlockedReason = 'All items are out of stock';
       else if (event.status !== 'published' && event.status !== 'ongoing') purchaseBlockedReason = 'Merchandise sales are not open';
-      else canPurchase = anyInStock && !deadlinePassed; // use deadline to gate sales too
+      else canPurchase = anyInStock && !deadlinePassed; 
     }
   }
 
@@ -355,10 +339,8 @@ const EventDetail = () => {
         <div><strong>Type:</strong> {event.type}</div>
         <div><strong>Status:</strong> {event.status}</div>
         <div><strong>Organizer:</strong> {event.organizer_name || event.organizer_id}</div>
-        {/* Primary action button: Register or Purchase based on type (case-insensitive) */}
 
         <div style={{ marginLeft: 'auto' }}>
-          {/* If participant already registered, show Cancel button */}
           {registered ? (
             <button
               onClick={async () => {
@@ -368,9 +350,7 @@ const EventDetail = () => {
                   if (resp && resp.data && resp.data.success) {
                     alert('Registration cancelled');
                     setRegistered(false);
-                    // keep the registration object updated (status = CANCELLED)
                     setRegistrationObj(resp.data.data && resp.data.data.registration ? resp.data.data.registration : null);
-                    // decrement local registration count if present
                     setEventData(prev => prev ? { ...prev, registrationCount: Math.max(0, (prev.registrationCount || 1) - 1) } : prev);
                   } else {
                     alert('Cancel failed: ' + (resp.data && resp.data.error));
@@ -390,14 +370,11 @@ const EventDetail = () => {
                   <button
                     onClick={async () => {
                       try {
-                        // call register API
                         const resp = await eventAPI.register(event._id);
                         if (resp && resp.data && resp.data.success) {
                           alert('Registration successful! Ticket ID: ' + (resp.data.data && resp.data.data.ticketId));
-                          // if backend returned a registration object, use it; otherwise mark registered
                           const regObj = resp.data.data && resp.data.data.registration ? resp.data.data.registration : null;
                           if (regObj && (regObj.status || '').toLowerCase() === 'cancelled') {
-                            // odd case: backend created/returned a cancelled registration — treat as not registered
                             setRegistered(false);
                             setRegistrationObj(regObj);
                           } else {
@@ -440,14 +417,12 @@ const EventDetail = () => {
             </>
           )}
 
-          {/* Fallback: if event type isn't recognized, show a subtle hint */}
           {eventType !== 'normal' && eventType !== 'merchandise' && (
             <div style={{ color: '#666', fontSize: 13 }}>No direct action available for this event type.</div>
           )}
         </div>
       </div>
 
-      {/* Tabs: Details / Forum */}
       <div style={{ display: 'flex', gap: 0, borderBottom: '2px solid #e0e0e0', marginBottom: 16 }}>
         {['details', 'forum'].map((tab) => (
           <button key={tab} onClick={() => setActiveTab(tab)}
@@ -463,7 +438,6 @@ const EventDetail = () => {
         ))}
       </div>
 
-      {/* Details tab */}
       {activeTab === 'details' && (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 12 }}>
@@ -514,12 +488,10 @@ const EventDetail = () => {
             </aside>
           </div>
 
-          {/* Anonymous feedback widget — visible after event ends for registered participants */}
           <FeedbackWidget eventId={event._id} event={event} registered={registered} />
         </>
       )}
 
-      {/* Forum tab */}
       {activeTab === 'forum' && (
         <div style={{ height: 560, display: 'flex', flexDirection: 'column', border: '1px solid #e0e0e0', borderRadius: 8, overflow: 'hidden' }}>
           {registered || participantProfile === null ? (

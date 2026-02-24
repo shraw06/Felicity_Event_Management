@@ -55,14 +55,12 @@ function EventCard({ ev, onEdit, analytics, attendance }) {
         {ev.formFields ? ev.formFields.length : 0} form field(s)
         {ev.registration_limit ? ` · Limit: ${ev.registration_limit}` : ''}
       </div>
-      {/* Attendance: shown for events that have started */}
       {ev.event_start_date && new Date(ev.event_start_date) <= new Date() && (
         <div style={{ fontSize: 12, color: '#444', marginTop: 6 }}>
           <strong style={{ fontWeight: 700 }}>{attendance ? (attendance.scanned ?? attendance.total ?? 0) : '—'}</strong>
           <span style={{ marginLeft: 6, color: '#666', fontSize: 11 }}>attendance</span>
         </div>
       )}
-      {/* Analytics for published events (registrations / sales / revenue) */}
       {analytics && ev.status === 'published' && (
         <div style={{ display: 'flex', gap: 12, marginTop: 8, alignItems: 'center' }}>
           <div style={{ fontSize: 13 }}>
@@ -100,7 +98,6 @@ export default function OrganizerDashboardContent() {
   const [analyticsByEventId, setAnalyticsByEventId] = useState({});
   const [attendanceByEventId, setAttendanceByEventId] = useState({});
 
-  // Get organizer id from localStorage
   const getOrganizerId = useCallback(async () => {
     const email = localStorage.getItem('organizerEmail');
     if (!email) return null;
@@ -110,7 +107,6 @@ export default function OrganizerDashboardContent() {
     } catch { return null; }
   }, []);
 
-  // Load all events for this organizer
   const loadEvents = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -134,7 +130,6 @@ export default function OrganizerDashboardContent() {
     loadEvents(); 
   }, [loadEvents]);
 
-  // Fetch analytics for published events (registrations/sales/revenue)
   useEffect(() => {
     let cancelled = false;
     const fetchForPublished = async () => {
@@ -164,7 +159,6 @@ export default function OrganizerDashboardContent() {
     return () => { cancelled = true; };
   }, [events]);
 
-  // Fetch attendance counts for events that have started (event_start_date <= now)
   useEffect(() => {
     let cancelled = false;
     const loadAttendance = async () => {
@@ -203,7 +197,6 @@ export default function OrganizerDashboardContent() {
     navigate('/organizer/create-events');
   };
 
-  // Group events by status
   const draftEvents = events.filter(e => e.status === 'draft');
   const publishedEvents = events.filter(e => e.status === 'published');
   const completedEvents = events.filter(e => ['ongoing', 'completed', 'closed'].includes(e.status));
@@ -257,7 +250,6 @@ export default function OrganizerDashboardContent() {
         </div>
       ) : (
         <>
-          {/* Draft Events */}
           {draftEvents.length > 0 && (
             <section style={{ marginBottom: 32 }}>
               <h3 style={{ 
@@ -288,7 +280,6 @@ export default function OrganizerDashboardContent() {
             </section>
           )}
 
-          {/* Published Events */}
           {publishedEvents.length > 0 && (
             <section style={{ marginBottom: 32 }}>
               <h3 style={{ 
@@ -319,7 +310,6 @@ export default function OrganizerDashboardContent() {
             </section>
           )}
 
-          {/* Completed Events */}
           {completedEvents.length > 0 && (
             <section style={{ marginBottom: 32 }}>
               <h3 style={{ 

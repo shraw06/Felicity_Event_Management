@@ -7,8 +7,8 @@ const sendDiscordNotification = async (webhookUrl, event) => {
     const embed = {
       title: `🎉 New Event Announced: ${event.name}`,
       description: event.description || 'No description provided.',
-      url: `http://localhost:3000/events/${event._id}`, // Adjust based on your deployment URL
-      color: 5814783, // Discord blurple
+      url: `http://localhost:3000/events/${event._id}`, 
+      color: 5814783, 
       fields: [
         {
           name: '📅 Date',

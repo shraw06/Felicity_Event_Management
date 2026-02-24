@@ -3,7 +3,6 @@ const Organizer = require('../models/Organizer');
 const Admin = require('../models/Admin');
 const Participant = require('../models/Participant');
 
-// Protect organizer routes: verifies JWT and attaches organizer document to req.organizer
 const protectOrganizer = async (req, res, next) => {
   try {
     let token = null;
@@ -34,7 +33,6 @@ const protectOrganizer = async (req, res, next) => {
   }
 };
 
-// Protect participant routes: verifies JWT and attaches participant document to req.participant
 const protectParticipant = async (req, res, next) => {
   try {
     let token = null;
@@ -65,7 +63,6 @@ const protectParticipant = async (req, res, next) => {
   }
 };
 
-// Protect admin routes: verifies JWT and attaches admin document to req.admin
 const protectAdmin = async (req, res, next) => {
   try {
     let token = null;

@@ -315,7 +315,6 @@ export default function EventViewofOrganizer() {
               <span style={{ color: '#666', fontSize: 13 }}>{fbTotal} feedback item{fbTotal !== 1 ? 's' : ''}</span>
             </div>
 
-            {/* Feedback list */}
             {fbLoading ? <div>Loading feedback…</div> : (
               <div>
                 {fbItems.length === 0 && <div style={{ color: '#666', padding: 8 }}>No feedback matching filter.</div>}
@@ -326,7 +325,6 @@ export default function EventViewofOrganizer() {
                     <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>{formatDate(fb.createdAt)}</div>
                   </div>
                 ))}
-                {/* Pagination */}
                 {fbPages > 1 && (
                   <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
                     <button disabled={fbPage <= 1} onClick={() => setFbPage((p) => p - 1)}>← Prev</button>

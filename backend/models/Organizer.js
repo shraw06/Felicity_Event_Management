@@ -43,11 +43,11 @@ const organizerSchema = new mongoose.Schema(
     password: {
       type: String,
       required: [true, 'Please add a password'],
-      select: false, // we dont want it ot be returned in queries
+      select: false, 
     }
   },
   {
-    timestamps: true, // Adds createdAt and updatedAt
+    timestamps: true, 
   }
 );
 

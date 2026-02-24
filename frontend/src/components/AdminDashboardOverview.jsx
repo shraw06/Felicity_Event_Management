@@ -51,13 +51,7 @@ export default function AdminDashboardOverview() {
           </div>
         </div>
 
-        {/* <div style={{ padding: 16, borderRadius: 8, background: '#fff', border: '1px solid #eee', minWidth: 180 }}>
-          <div style={{ fontSize: 28, fontWeight: 700 }}>{counts.events}</div>
-          <div style={{ color: '#666' }}>Events</div>
-          <div style={{ marginTop: 12 }}>
-            <button onClick={() => navigate('/admin/dashboard')} style={{ padding: '6px 10px' }}>View Events</button>
-          </div>
-        </div> */}
+        
 
         <div style={{ padding: 16, borderRadius: 8, background: '#fff', border: '1px solid #eee', minWidth: 220 }}>
           <div style={{ fontSize: 28, fontWeight: 700 }}>{counts.pendingResets}</div>
@@ -68,13 +62,7 @@ export default function AdminDashboardOverview() {
         </div>
       </div>
 
-      {/* <div style={{ padding: 12, border: '1px solid #f0f0f0', borderRadius: 8, background: '#fff' }}>
-        <h4>Quick Actions</h4>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => navigate('/admin/manage-organizers')} style={{ padding: '8px 14px' }}>Manage Organizers</button>
-          <button onClick={() => navigate('/admin/password-reset-requests')} style={{ padding: '8px 14px' }}>Handle Reset Requests</button>
-        </div>
-      </div> */}
+      
     </div>
   );
 }

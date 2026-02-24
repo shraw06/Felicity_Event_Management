@@ -25,7 +25,6 @@ const OrganizerLogin = ({ onLogin }) => {
       const token = res.data?.token;
       const org = res.data?.data;
 
-      // persist for profile page and later requests
       if (token) localStorage.setItem('token', token);
       if (org?.email) localStorage.setItem('organizerEmail', org.email);
 

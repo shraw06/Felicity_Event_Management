@@ -24,11 +24,11 @@ router.route('/')
 router.route('/login')
   .post(loginOrganizer);
 
-// ── Password reset request (organizer submits) ─────────────────────────────
+//Password reset request (organizer submits) 
 router.route('/reset-request')
   .post(protectOrganizer, createResetRequest);
 
-// ── Organizer views own reset requests ──────────────────────────────────────
+//Organizer views own reset requests
 router.route('/my-reset-requests')
   .get(protectOrganizer, getMyResetRequests);
 

@@ -7,16 +7,13 @@ export default function AdminPasswordResetRequests() {
   const [statusFilter, setStatusFilter] = useState('');
   const [error, setError] = useState('');
 
-  // For approve flow
-  const [approving, setApproving] = useState(null); // request id
+  const [approving, setApproving] = useState(null); 
   const [approveComments, setApproveComments] = useState('');
-  const [generatedPassword, setGeneratedPassword] = useState(null); // { requestId, password }
+  const [generatedPassword, setGeneratedPassword] = useState(null); 
 
-  // For reject flow
-  const [rejecting, setRejecting] = useState(null); // request id
+  const [rejecting, setRejecting] = useState(null); 
   const [rejectComments, setRejectComments] = useState('');
 
-  // For viewing details
   const [viewingDetail, setViewingDetail] = useState(null);
 
   const fetchRequests = async () => {
@@ -35,7 +32,6 @@ export default function AdminPasswordResetRequests() {
 
   useEffect(() => { fetchRequests(); }, [statusFilter]);
 
-  /* ── Approve ─────────────────────────────────────────────────────────────── */
   const handleApprove = async (id) => {
     setError('');
     try {
@@ -53,7 +49,6 @@ export default function AdminPasswordResetRequests() {
     }
   };
 
-  /* ── Reject ──────────────────────────────────────────────────────────────── */
   const handleReject = async (id) => {
     if (!rejectComments.trim()) { setError('Comments are required when rejecting'); return; }
     setError('');
@@ -71,7 +66,6 @@ export default function AdminPasswordResetRequests() {
     }
   };
 
-  /* ── View details ────────────────────────────────────────────────────────── */
   const handleViewDetail = async (id) => {
     try {
       const res = await adminAPI.getResetRequestById(id);
@@ -91,7 +85,6 @@ export default function AdminPasswordResetRequests() {
 
       {error && <div style={{ color: '#c00', marginBottom: 8 }}>{error}</div>}
 
-      {/* ── Generated password display (shown once after approval) ──────────── */}
       {generatedPassword && (
         <div style={{ border: '2px solid #388e3c', background: '#e8f5e9', padding: 12, borderRadius: 6, marginBottom: 12 }}>
           <strong>✅ Password reset approved!</strong>
@@ -106,7 +99,6 @@ export default function AdminPasswordResetRequests() {
         </div>
       )}
 
-      {/* ── Detail modal ───────────────────────────────────────────────────── */}
       {viewingDetail && (
         <div style={{ border: '1px solid #ccc', background: '#fafafa', padding: 12, borderRadius: 6, marginBottom: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -137,7 +129,6 @@ export default function AdminPasswordResetRequests() {
         </div>
       )}
 
-      {/* ── Status filter ──────────────────────────────────────────────────── */}
       <div style={{ marginBottom: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
         <label>Filter:</label>
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
@@ -149,7 +140,6 @@ export default function AdminPasswordResetRequests() {
         <button onClick={fetchRequests}>Refresh</button>
       </div>
 
-      {/* ── Table ──────────────────────────────────────────────────────────── */}
       {loading ? (
         <div>Loading…</div>
       ) : requests.length === 0 ? (
@@ -211,7 +201,6 @@ export default function AdminPasswordResetRequests() {
         </table>
       )}
 
-      {/* ── Approve inline form ────────────────────────────────────────────── */}
       {approving && (
         <div style={{ border: '1px solid #388e3c', padding: 12, borderRadius: 6, marginTop: 12 }}>
           <strong>Approve Request</strong>
@@ -232,7 +221,6 @@ export default function AdminPasswordResetRequests() {
         </div>
       )}
 
-      {/* ── Reject inline form ─────────────────────────────────────────────── */}
       {rejecting && (
         <div style={{ border: '1px solid #c62828', padding: 12, borderRadius: 6, marginTop: 12 }}>
           <strong>Reject Request</strong>

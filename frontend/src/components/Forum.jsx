@@ -6,7 +6,6 @@ const SOCKET_URL = import.meta.env.VITE_API_URL.replace("/api", "");
 
 const EMOJI_LIST = ['👍', '❤️', '😂', '😮', '😢', '🔥', '🎉', '👀'];
 
-// ── tiny helpers ─────────────────────────────────────────────────────────────
 
 function timeStr(ts) {
   const d = new Date(ts);
@@ -17,7 +16,6 @@ function dateSep(ts) {
   return new Date(ts).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
-// Group reactions: { emoji → count, myReacted }
 function groupReactions(reactions, myId) {
   const map = {};
   reactions.forEach(({ emoji, userId }) => {
@@ -28,7 +26,6 @@ function groupReactions(reactions, myId) {
   return map;
 }
 
-// ── sub-components ────────────────────────────────────────────────────────────
 
 function EmojiPicker({ onPick, onClose }) {
   return (
@@ -85,7 +82,6 @@ function MessageBubble({
         transition: 'background 0.4s',
       }}
     >
-      {/* Header row */}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 2 }}>
         <span style={{ fontWeight: 700, fontSize: 13, color: msg.senderRole === 'organizer' ? '#5865f2' : '#333' }}>
           {msg.senderName}
@@ -108,17 +104,14 @@ function MessageBubble({
         <span style={{ fontSize: 11, color: '#999' }}>{timeStr(msg.createdAt)}</span>
       </div>
 
-      {/* Content */}
       <div style={{ fontSize: 14, color: deleted ? '#999' : '#222', fontStyle: deleted ? 'italic' : 'normal', marginLeft: 2 }}>
         {msg.content}
       </div>
 
-      {/* Reactions */}
       {!deleted && (
         <ReactionBar reactions={msg.reactions || []} myId={myId} onReact={(emoji) => onReact(msg._id, emoji)} />
       )}
 
-      {/* Action bar */}
       {!deleted && (
         <div style={{ display: 'flex', gap: 8, marginTop: 4, position: 'relative' }}>
           <button onClick={() => onReply(msg)} style={btnStyle}>↩ Reply</button>
@@ -145,15 +138,7 @@ const btnStyle = {
   background: '#fff', cursor: 'pointer', color: '#555',
 };
 
-// ── Main Forum component ───────────────────────────────────────────────────────
 
-/**
- * Props:
- *  eventId        – MongoDB ObjectId string of the event
- *  isOrganizer    – boolean: true if the viewer is the event organizer
- *  myId           – the viewer's MongoDB ObjectId string
- *  myName         – the viewer's display name
- */
 export default function Forum({ eventId, isOrganizer, myId, myName }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -165,15 +150,13 @@ export default function Forum({ eventId, isOrganizer, myId, myName }) {
   const bottomRef = useRef(null);
   const token = localStorage.getItem('token');
 
-  // ── Load history ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!eventId) return;
     forumAPI.getMessages(eventId)
       .then((res) => setMessages(res.data.data || []))
-      .catch(() => {}); // silently fail if not registered
+      .catch(() => {}); 
   }, [eventId]);
 
-  // ── Socket connection ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!eventId || !token) return;
 
@@ -198,7 +181,6 @@ export default function Forum({ eventId, isOrganizer, myId, myName }) {
     });
 
     socket.on('message-deleted', (payload) => {
-      // payload may be { messageId } (legacy) or { messageIds: [...] }
       const ids = payload?.messageIds || (payload?.messageId ? [payload.messageId] : []);
       if (!ids || ids.length === 0) return;
       setMessages((prev) =>
@@ -224,12 +206,10 @@ export default function Forum({ eventId, isOrganizer, myId, myName }) {
     };
   }, [eventId, token]);
 
-  // ── Auto-scroll to bottom ────────────────────────────────────────────────────
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length]);
 
-  // ── Actions ──────────────────────────────────────────────────────────────────
   const sendMessage = () => {
     const content = input.trim();
     if (!content || !socketRef.current) return;
@@ -266,15 +246,12 @@ export default function Forum({ eventId, isOrganizer, myId, myName }) {
     setTimeout(() => setHighlightId(null), 2500);
   }, []);
 
-  // ── Separate pinned messages ─────────────────────────────────────────────────
   const pinned = messages.filter((m) => m.isPinned && !m.deletedAt);
   const topLevelMsgs = messages.filter((m) => !m.parentMessageId);
   const repliesFor = (parentId) => messages.filter((m) => String(m.parentMessageId) === String(parentId));
 
-  // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', fontFamily: 'inherit' }}>
-      {/* Pinned messages */}
       {pinned.length > 0 && (
         <div style={{ borderBottom: '1px solid #e0e0e0', padding: '8px 12px', background: '#f0fff0' }}>
           <div style={{ fontWeight: 700, fontSize: 12, color: '#43a047', marginBottom: 4 }}>📌 Pinned Messages</div>
@@ -288,7 +265,6 @@ export default function Forum({ eventId, isOrganizer, myId, myName }) {
         </div>
       )}
 
-      {/* Message feed */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '10px 14px' }}>
         {messages.length === 0 && (
           <div style={{ color: '#999', textAlign: 'center', marginTop: 40, fontSize: 14 }}>
@@ -297,7 +273,6 @@ export default function Forum({ eventId, isOrganizer, myId, myName }) {
         )}
 
         {(() => {
-          // Render top-level messages with their replies inline
           let lastDate = '';
           return topLevelMsgs.map((msg) => {
             const dateLabel = dateSep(msg.createdAt);
@@ -316,7 +291,6 @@ export default function Forum({ eventId, isOrganizer, myId, myName }) {
                   onReply={setReplyTo} onDelete={handleDelete}
                   onPin={handlePin} onReact={handleReact} highlightId={highlightId}
                 />
-                {/* Threaded replies */}
                 {replies.length > 0 && (
                   <div style={{ marginLeft: 24, borderLeft: '2px solid #e0e0e0', paddingLeft: 8, marginBottom: 4 }}>
                     {replies.map((r) => (
@@ -335,7 +309,6 @@ export default function Forum({ eventId, isOrganizer, myId, myName }) {
         <div ref={bottomRef} />
       </div>
 
-      {/* Reply indicator */}
       {replyTo && (
         <div style={{ padding: '4px 12px', background: '#eef', fontSize: 12,
           borderTop: '1px solid #ddd', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -344,7 +317,6 @@ export default function Forum({ eventId, isOrganizer, myId, myName }) {
         </div>
       )}
 
-      {/* Input area */}
       <div style={{ padding: '8px 12px', borderTop: '1px solid #e0e0e0', background: '#fff' }}>
         {isOrganizer && (
           <div style={{ marginBottom: 6 }}>

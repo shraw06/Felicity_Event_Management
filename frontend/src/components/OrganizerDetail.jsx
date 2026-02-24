@@ -32,7 +32,6 @@ const OrganizerDetail = () => {
     };
     fetchEvent();
 
-    // also fetch events for this organizer
     const fetchEvents = async () => {
       try {
         const orgRes = await organizerAPI.getOrganizer(email);
@@ -61,7 +60,6 @@ const OrganizerDetail = () => {
         setUpcoming(upcomingList);
         setPast(pastList);
       } catch (err) {
-        // don't crash organizer page if events fail
         console.error('Failed to load organizer events', err);
       }
     };

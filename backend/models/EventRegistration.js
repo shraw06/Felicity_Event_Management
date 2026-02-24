@@ -24,7 +24,6 @@ const eventRegistrationSchema = new mongoose.Schema(
     default: "UPCOMING"
   }
   ,
-  // ticket fields: store last issued ticket id and QR image (png) as buffer
   ticketId: {
     type: String,
     default: null,
@@ -37,11 +36,10 @@ const eventRegistrationSchema = new mongoose.Schema(
     type: String,
     default: null,
   },
-  // ── Payment-proof fields (merchandise events only) ──────────────────────────
   payment_status: {
     type: String,
     enum: ['awaiting_payment', 'pending_approval', 'rejected', 'successful'],
-    default: null,          // null for normal-event registrations
+    default: null,          
   },
   paymentProofUrl: {
     type: String,
@@ -51,7 +49,6 @@ const eventRegistrationSchema = new mongoose.Schema(
     type: String,
     default: null,
   },
-  // ── Attendance / scan fields ────────────────────────────────────────────────
   attended: {
     type: Boolean,
     default: false,
@@ -94,29 +91,21 @@ const eventRegistrationSchema = new mongoose.Schema(
   timestamps: true
 });
 
-// Prevent duplicate joins
 eventRegistrationSchema.index(
   { participantId: 1, eventId: 1 },
   { unique: true }
 );
 
-// After first registration for an event, lock the event's formFields so organizers
-// After first registration for an event, lock the event's formFields so organizers
-// cannot change the registration form structure. Place the hook before export so
-// it's attached to the schema definition; use the saved document's constructor to
-// count registrations (avoids referencing models before registration).
+
 eventRegistrationSchema.post('save', async function (doc, next) {
   try {
     const Event = require('./Event');
-    // use the model that saved this document to count documents reliably
     const cnt = await doc.constructor.countDocuments({ eventId: doc.eventId });
     if (cnt === 1) {
-      // first registration -> lock the form
       await Event.findByIdAndUpdate(doc.eventId, { form_locked: true }, { new: true });
     }
     return next();
   } catch (err) {
-    // don't block registration on lock failure, but log it
     console.error('Error locking event form after registration:', err.message || err);
     return next();
   }

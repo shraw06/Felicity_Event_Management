@@ -9,7 +9,7 @@ const OrganizerPayments = () => {
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('');
   const [proofUrl, setProofUrl] = useState(null);
-  const [actionOrder, setActionOrder] = useState(null); // { order, type:'approve'|'reject' }
+  const [actionOrder, setActionOrder] = useState(null); 
   const [actionItem, setActionItem] = useState('');
   const [actionReason, setActionReason] = useState('');
   const [actionBusy, setActionBusy] = useState(false);
@@ -58,7 +58,6 @@ const OrganizerPayments = () => {
     <div>
       <h3>Merchandise Payments</h3>
 
-      {/* filter */}
       <div style={{ marginBottom: 10 }}>
         <label>Filter: </label>
         {['', 'awaiting_payment', 'pending_approval', 'rejected', 'successful'].map(s => (
@@ -110,7 +109,6 @@ const OrganizerPayments = () => {
         </table>
       )}
 
-      {/* proof modal */}
       {proofUrl && (
         <div onClick={() => setProofUrl(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}>
           <div onClick={e => e.stopPropagation()} style={{ background: '#fff', padding: 8, borderRadius: 4 }}>
@@ -120,7 +118,6 @@ const OrganizerPayments = () => {
         </div>
       )}
 
-      {/* approve / reject modal */}
       {actionOrder && (
         <div onClick={() => setActionOrder(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}>
           <div onClick={e => e.stopPropagation()} style={{ background: '#fff', padding: 16, borderRadius: 4, minWidth: 280 }}>

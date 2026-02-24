@@ -2,32 +2,25 @@ const Feedback = require('../models/Feedback');
 const Event = require('../models/Event');
 const EventRegistration = require('../models/EventRegistration');
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   POST /api/events/:id/feedback   (protectParticipant)
-   Submit or update feedback for an attended event.
-   ───────────────────────────────────────────────────────────────────────────── */
+
 const submitFeedback = async (req, res) => {
   try {
     const eventId = req.params.id;
     const participantId = req.participant._id;
 
-    // 1. Verify the event exists
     const event = await Event.findById(eventId);
     if (!event) return res.status(404).json({ success: false, error: 'Event not found' });
 
-    // 2. Verify participant has a non-cancelled registration
     const reg = await EventRegistration.findOne({ eventId, participantId, status: { $ne: 'CANCELLED' } });
     if (!reg) {
       return res.status(403).json({ success: false, error: 'You must be registered for this event to leave feedback' });
     }
 
-    // 3. Event should have ended (or at least started)
     const now = new Date();
     if (event.event_end_date && new Date(event.event_end_date) > now) {
       return res.status(400).json({ success: false, error: 'Feedback can only be submitted after the event has ended' });
     }
 
-    // 4. Validate rating
     const rating = Number(req.body.rating);
     if (!rating || rating < 1 || rating > 5) {
       return res.status(400).json({ success: false, error: 'Rating must be between 1 and 5' });
@@ -35,7 +28,6 @@ const submitFeedback = async (req, res) => {
 
     const comment = (req.body.comment || '').trim().slice(0, 2000);
 
-    // 5. Upsert (one feedback per participant per event)
     const feedback = await Feedback.findOneAndUpdate(
       { eventId, participantId },
       { rating, comment },
@@ -51,16 +43,12 @@ const submitFeedback = async (req, res) => {
   }
 };
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   GET /api/events/:id/my-feedback   (protectParticipant)
-   Get current participant's own feedback for an event.
-   ───────────────────────────────────────────────────────────────────────────── */
+
 const getMyFeedback = async (req, res) => {
   try {
     const eventId = req.params.id;
     const participantId = req.participant._id;
 
-    // Use .select('+participantId') so we can match, but strip it from response
     const fb = await Feedback.findOne({ eventId, participantId }).select('rating comment updatedAt');
     if (!fb) return res.status(404).json({ success: false, error: 'No feedback found' });
 
@@ -70,10 +58,7 @@ const getMyFeedback = async (req, res) => {
   }
 };
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   GET /api/events/:id/feedback/summary   (protectOrganizer)
-   Aggregated ratings: average, count, distribution.
-   ───────────────────────────────────────────────────────────────────────────── */
+
 const getFeedbackSummary = async (req, res) => {
   try {
     const eventId = req.params.id;
@@ -89,7 +74,6 @@ const getFeedbackSummary = async (req, res) => {
       },
     ]);
 
-    // Distribution 1–5
     const dist = await Feedback.aggregate([
       { $match: { eventId: require('mongoose').Types.ObjectId.createFromHexString(eventId) } },
       { $group: { _id: '$rating', count: { $sum: 1 } } },
@@ -111,29 +95,23 @@ const getFeedbackSummary = async (req, res) => {
   }
 };
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   GET /api/events/:id/feedback   (protectOrganizer)
-   List feedback (anonymous). Supports ?rating=N filter and pagination.
-   ───────────────────────────────────────────────────────────────────────────── */
 const getFeedback = async (req, res) => {
   try {
     const eventId = req.params.id;
     const filter = { eventId };
 
-    // Optional rating filter
     if (req.query.rating) {
       const r = Number(req.query.rating);
       if (r >= 1 && r <= 5) filter.rating = r;
     }
 
-    // Pagination
     const page = Math.max(1, Number(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
     const skip = (page - 1) * limit;
 
     const [items, total] = await Promise.all([
       Feedback.find(filter)
-        .select('rating comment createdAt') // exclude participantId (already select:false)
+        .select('rating comment createdAt') 
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -147,10 +125,7 @@ const getFeedback = async (req, res) => {
   }
 };
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   GET /api/events/:id/feedback/export   (protectOrganizer)
-   Export feedback as CSV (no participant identifiers).
-   ───────────────────────────────────────────────────────────────────────────── */
+
 const exportFeedbackCsv = async (req, res) => {
   try {
     const eventId = req.params.id;

@@ -8,10 +8,7 @@ const {
   handleReactMessage,
 } = require('../controllers/forumController');
 
-/**
- * Authenticate a socket connection via token in handshake auth.
- * Attaches { senderId, senderRole, senderName } to socket.data.
- */
+
 async function authenticateSocket(socket, next) {
   try {
     const token = socket.handshake.auth?.token;
@@ -20,7 +17,6 @@ async function authenticateSocket(socket, next) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (!decoded?.id) return next(new Error('Invalid token'));
 
-    // Try participant first, then organizer
     const participant = await Participant.findById(decoded.id).select('first_name last_name email');
     if (participant) {
       socket.data.senderId = participant._id;
@@ -49,10 +45,8 @@ function registerSocketHandlers(io) {
   io.on('connection', (socket) => {
     const { senderId, senderRole, senderName } = socket.data;
 
-    // Join personal room so notifications can be pushed directly
     socket.join(`user:${senderId}`);
 
-    // Client emits join-event-room to subscribe to an event's forum
     socket.on('join-event-room', (eventId) => {
       if (eventId) socket.join(`event:${eventId}`);
     });

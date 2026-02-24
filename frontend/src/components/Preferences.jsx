@@ -35,7 +35,6 @@ const Preferences = () => {
     const fetchOrgs = async () => {
       try {
         const res = await organizerAPI.getOrganizers();
-        // backend returns { success, count, data }
         const list = (res && res.data && res.data.data) || [];
         setOrganizers(list);
       } catch (err) {
@@ -50,26 +49,21 @@ const Preferences = () => {
   };
 
   const toggleFollowOrganizer = async (orgId) => {
-    // orgId should be the organizer _id (string)
     const email = localStorage.getItem('participantEmail');
 
-    // optimistic UI update
     const next = following.includes(orgId) ? following.filter(x => x !== orgId) : [...following, orgId];
     setFollowing(next);
-    // also persist to localStorage
     try {
       const prefs = { areas, following: next };
       localStorage.setItem('preferences', JSON.stringify(prefs));
 
       if (email) {
-        // send update to server. include areas to avoid overwriting them unintentionally
         await participantAPI.updateParticipant(email, { preferences: prefs });
         setMessage('Preferences updated.');
       } else {
         setMessage('Preferences saved locally.');
       }
     } catch (err) {
-      // revert optimistic update on error
       setFollowing(prev => prev.includes(orgId) ? prev.filter(x => x !== orgId) : [...prev, orgId]);
       setMessage('Failed to update preferences on server. Reverted.');
       console.error('Failed to update follow state', err);
