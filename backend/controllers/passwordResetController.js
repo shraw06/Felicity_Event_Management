@@ -148,32 +148,47 @@ const approveResetRequest = async (req, res) => {
     });
     await request.save();
 
-    // Email the new password to organizer's contact email (and CC admin)
-    try {
-      const transporter = _getTransporter();
-      const recipients = [];
+    // // Email the new password to organizer's contact email (and CC admin)
+    // try {
+    //   const transporter = _getTransporter();
+    //   const recipients = [];
 
-      // primary: organizer's contact email if available, otherwise fall back to the organizer login email
-      if (organizer.contact_email && organizer.contact_email.trim()) recipients.push(organizer.contact_email.trim());
-      else if (request.organizerEmail) recipients.push(request.organizerEmail);
+    //   // primary: organizer's contact email if available, otherwise fall back to the organizer login email
+    //   if (organizer.contact_email && organizer.contact_email.trim()) recipients.push(organizer.contact_email.trim());
+    //   else if (request.organizerEmail) recipients.push(request.organizerEmail);
 
-      // also CC the approving admin for record (optional copy)
-      if (req.admin && req.admin.email) recipients.push(req.admin.email);
+    //   // also CC the approving admin for record (optional copy)
+    //   if (req.admin && req.admin.email) recipients.push(req.admin.email);
 
-      await transporter.sendMail({
-        from: process.env.EMAIL_FROM || process.env.SMTP_USER,
-        to: recipients.join(','),
-        subject: `Password Reset Approved – ${request.clubName}`,
-        html: `<p>Your password reset for <strong>${request.clubName}</strong> has been approved by ${req.admin?.email || 'an administrator'}.</p>
-               <p><strong>New Temporary Password:</strong> <code>${plaintext}</code></p>
-               <p>Please log in and change your password immediately. The admin has been copied on this email.</p>`,
-      });
-    } catch (mailErr) {
-      console.error('Failed to email new password to organizer/admin', mailErr);
-      // Don't fail the request — admin still gets plaintext in the response
-    }
+    // Prepare email options (don't send synchronously) so we can return the plaintext immediately
+    const recipients = [];
+    if (organizer.contact_email && organizer.contact_email.trim()) recipients.push(organizer.contact_email.trim());
+    else if (request.organizerEmail) recipients.push(request.organizerEmail);
+    if (req.admin && req.admin.email) recipients.push(req.admin.email);
 
-    // Return plaintext once (never stored in DB)
+    //   await transporter.sendMail({
+    //     from: process.env.EMAIL_FROM || process.env.SMTP_USER,
+    //     to: recipients.join(','),
+    //     subject: `Password Reset Approved – ${request.clubName}`,
+    //     html: `<p>Your password reset for <strong>${request.clubName}</strong> has been approved by ${req.admin?.email || 'an administrator'}.</p>
+    //            <p><strong>New Temporary Password:</strong> <code>${plaintext}</code></p>
+    //            <p>Please log in and change your password immediately. The admin has been copied on this email.</p>`,
+    //   });
+    // } catch (mailErr) {
+    //   console.error('Failed to email new password to organizer/admin', mailErr);
+    //   // Don't fail the request — admin still gets plaintext in the response
+    // }
+
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || process.env.SMTP_USER,
+      to: recipients.join(','),
+      subject: `Password Reset Approved – ${request.clubName}`,
+      html: `<p>Your password reset for <strong>${request.clubName}</strong> has been approved by ${req.admin?.email || 'an administrator'}.</p>
+             <p><strong>New Temporary Password:</strong> <code>${plaintext}</code></p>
+             <p>Please log in and change your password immediately. The admin has been copied on this email.</p>`,
+    };
+
+    // Return plaintext once (never stored in DB) immediately
     res.json({
       success: true,
       data: {
@@ -181,6 +196,15 @@ const approveResetRequest = async (req, res) => {
         plaintextPassword: plaintext,
       },
     });
+    // Send the email asynchronously (do not await) — log errors but don't affect response
+    try {
+      const transporter = _getTransporter();
+      transporter.sendMail(mailOptions).catch((mailErr) => {
+        console.error('Failed to email new password to organizer/admin', mailErr);
+      });
+    } catch (mailErr) {
+      console.error('Failed to start email send for new password', mailErr);
+    }
   } catch (err) {
     console.error('approveResetRequest error', err);
     res.status(500).json({ success: false, error: err.message });
