@@ -24,6 +24,8 @@ import AdminPasswordResetRequests from './components/AdminPasswordResetRequests'
 import EventViewofOrganizer from './components/EventViewofOrganizer';
 import OrganizerPayments from './components/OrganizerPayments';
 import OrganizerAttendance from './components/OrganizerAttendance';
+import OrganizerOngoingEvents from './components/OrganizerOngoingEvents';
+
 import './App.css';
 
 function Home() {
@@ -80,8 +82,8 @@ function App() {
             <Route index element={<OrganizerDashboardContent />} />
             <Route path="dashboard" element={<OrganizerDashboardContent />} />
             <Route path="create-events" element={<CreateEvent />} />
-            <Route path="ongoing-events" element={<div><h3>Ongoing Events</h3><p>Event listing goes here.</p></div>} />
             <Route path="profile" element={<OrganizerProfile />} />
+            <Route path="ongoing-events" element={<OrganizerOngoingEvents />} />
             <Route path="payments" element={<OrganizerPayments />} />
             <Route path="logout" element={<LogoutHandlerOrganizer />} />
             <Route path="events/:id" element={<EventViewofOrganizer />} />
