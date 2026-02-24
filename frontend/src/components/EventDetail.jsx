@@ -227,6 +227,10 @@ const EventDetail = () => {
   const [registrationObj, setRegistrationObj] = useState(null);
   const [participantProfile, setParticipantProfile] = useState(null);
   const [activeTab, setActiveTab] = useState('details'); // 'details' | 'forum'
+  // Registration form modal state
+  const [showRegForm, setShowRegForm] = useState(false);
+  const [regFormValues, setRegFormValues] = useState({});
+  const [regSubmitting, setRegSubmitting] = useState(false);
 
   useEffect(() => {
     if (location.hash && location.hash.startsWith('#msg-')) {
@@ -369,7 +373,19 @@ const EventDetail = () => {
                 canRegister ? (
                   <button
                     onClick={async () => {
+                      // If event has custom form fields, open modal first
+                      if (Array.isArray(event.formFields) && event.formFields.length > 0) {
+                        const defaults = {};
+                        event.formFields.slice().sort((a, b) => a.position - b.position).forEach(f => {
+                          if (f.type === 'checkbox') defaults[f.name] = [];
+                          else defaults[f.name] = '';
+                        });
+                        setRegFormValues(defaults);
+                        setShowRegForm(true);
+                        return;
+                      }
                       try {
+                        // call register API (no form fields)
                         const resp = await eventAPI.register(event._id);
                         if (resp && resp.data && resp.data.success) {
                           alert('Registration successful! Ticket ID: ' + (resp.data.data && resp.data.data.ticketId));
@@ -506,6 +522,105 @@ const EventDetail = () => {
               You must be registered for this event to access the forum.
             </div>
           )}
+        </div>
+      )}
+      {/* ── Registration Form Modal (normal events with formFields) ─────────── */}
+      {showRegForm && event && Array.isArray(event.formFields) && event.formFields.length > 0 && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#fff', borderRadius: 10, padding: 28, width: 480, maxWidth: '95vw', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}>
+            <h4 style={{ margin: '0 0 12px' }}>Registration Form – {event.name}</h4>
+            <p style={{ fontSize: 13, color: '#666', margin: '0 0 16px' }}>Please fill out the form below to complete your registration.</p>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setRegSubmitting(true);
+              try {
+                const resp = await eventAPI.register(event._id, { formResponses: regFormValues });
+                if (resp && resp.data && resp.data.success) {
+                  alert('Registration successful! Ticket ID: ' + (resp.data.data && resp.data.data.ticketId));
+                  const regObj = resp.data.data && resp.data.data.registration ? resp.data.data.registration : null;
+                  if (regObj && (regObj.status || '').toLowerCase() === 'cancelled') {
+                    setRegistered(false); setRegistrationObj(regObj);
+                  } else {
+                    setRegistered(true); setRegistrationObj(regObj);
+                  }
+                  setEventData(prev => prev ? { ...prev, registrationCount: (prev.registrationCount || 0) + 1 } : prev);
+                  setShowRegForm(false);
+                } else {
+                  alert('Registration failed: ' + (resp.data && resp.data.error));
+                }
+              } catch (err) {
+                alert('Registration error: ' + (err.response && err.response.data && err.response.data.error ? err.response.data.error : err.message));
+              } finally {
+                setRegSubmitting(false);
+              }
+            }}>
+              {[...event.formFields].sort((a, b) => a.position - b.position).map((field) => (
+                <div key={field.name} style={{ marginBottom: 14 }}>
+                  <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4 }}>{field.title || field.name}</label>
+
+                  {field.type === 'text' && (
+                    <input type="text" value={regFormValues[field.name] || ''} onChange={e => setRegFormValues(v => ({ ...v, [field.name]: e.target.value }))}
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #ccc', fontSize: 14, boxSizing: 'border-box' }} />
+                  )}
+
+                  {field.type === 'number' && (
+                    <input type="number" value={regFormValues[field.name] || ''} onChange={e => setRegFormValues(v => ({ ...v, [field.name]: e.target.value }))}
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #ccc', fontSize: 14, boxSizing: 'border-box' }} />
+                  )}
+
+                  {field.type === 'dropdown' && (
+                    <select value={regFormValues[field.name] || ''} onChange={e => setRegFormValues(v => ({ ...v, [field.name]: e.target.value }))}
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #ccc', fontSize: 14 }}>
+                      <option value="">Select…</option>
+                      {(field.choices || []).map(ch => <option key={ch} value={ch}>{ch}</option>)}
+                    </select>
+                  )}
+
+                  {field.type === 'radio' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {(field.choices || []).map(ch => (
+                        <label key={ch} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+                          <input type="radio" name={`regfield_${field.name}`} value={ch}
+                            checked={regFormValues[field.name] === ch}
+                            onChange={() => setRegFormValues(v => ({ ...v, [field.name]: ch }))} />
+                          {ch}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+
+                  {field.type === 'checkbox' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {(field.choices || []).map(ch => (
+                        <label key={ch} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+                          <input type="checkbox" checked={Array.isArray(regFormValues[field.name]) && regFormValues[field.name].includes(ch)}
+                            onChange={() => {
+                              setRegFormValues(v => {
+                                const arr = Array.isArray(v[field.name]) ? [...v[field.name]] : [];
+                                return { ...v, [field.name]: arr.includes(ch) ? arr.filter(x => x !== ch) : [...arr, ch] };
+                              });
+                            }} />
+                          {ch}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+
+                  {field.type === 'file' && (
+                    <div style={{ fontSize: 12, color: '#999' }}>File upload not supported in registration form.</div>
+                  )}
+                </div>
+              ))}
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
+                <button type="button" onClick={() => setShowRegForm(false)} disabled={regSubmitting}
+                  style={{ padding: '7px 16px', borderRadius: 6, border: '1px solid #ccc', cursor: 'pointer', background: '#fff' }}>Cancel</button>
+                <button type="submit" disabled={regSubmitting}
+                  style={{ padding: '7px 16px', borderRadius: 6, background: '#007bff', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
+                  {regSubmitting ? 'Submitting…' : 'Submit & Register'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

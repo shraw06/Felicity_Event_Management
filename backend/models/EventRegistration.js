@@ -86,6 +86,12 @@ const eventRegistrationSchema = new mongoose.Schema(
       reason: String,
     },
   ],
+  // ── Custom registration form responses (keyed by formField.name → value) ────
+  formResponses: {
+    type: Map,
+    of: mongoose.Schema.Types.Mixed,
+    default: undefined,
+  },
 },
 {
   timestamps: true

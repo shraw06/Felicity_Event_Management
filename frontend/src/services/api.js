@@ -69,7 +69,7 @@ export const eventAPI = {
   // Get event by id
   getEvent: (id) => api.get(`/events/${id}`),
   // Register for an event (participant must be authenticated)
-  register: (id) => api.post(`/events/${id}/register`),
+    register: (id, body) => api.post(`/events/${id}/register`, body || {}),
   // Check whether the current participant is registered for the event
   getRegistration: (id) => api.get(`/events/${id}/registration`),
   // Cancel the current participant's registration for the event

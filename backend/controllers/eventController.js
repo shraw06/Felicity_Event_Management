@@ -234,6 +234,26 @@ const registerForEvent = async (req, res) => {
 
     const EventRegistration = require('../models/EventRegistration');
 
+
+    // ── Validate & collect custom form responses ─────────────────────────────
+    let formResponses = undefined;
+    const formFields = Array.isArray(ev.formFields) ? ev.formFields : [];
+    if (formFields.length > 0) {
+      const incoming = req.body && req.body.formResponses ? req.body.formResponses : {};
+      if (!incoming || typeof incoming !== 'object') {
+        return res.status(400).json({ success: false, error: 'Custom registration form responses are required' });
+      }
+      formResponses = {};
+      for (const field of formFields) {
+        const val = incoming[field.name];
+        if (field.type === 'checkbox') {
+          formResponses[field.name] = val !== undefined ? val : false;
+        } else {
+          formResponses[field.name] = val !== undefined && val !== null && val !== '' ? val : '';
+        }
+      }
+    }
+
     if (typeof ev.registration_limit === 'number' && ev.registration_limit > 0) {
       const cnt = await EventRegistration.countDocuments({ eventId: ev._id, status: { $ne: 'CANCELLED' } });
       if (cnt >= ev.registration_limit) return res.status(400).json({ success: false, error: 'Registration limit reached' });
@@ -246,6 +266,7 @@ const registerForEvent = async (req, res) => {
           return res.status(400).json({ success: false, error: 'Registration deadline passed' });
         }
         reg.status = 'UPCOMING';
+        if (formResponses) reg.formResponses = formResponses;
         await reg.save();
       } else {
         return res.status(200).json({ success: true, data: { registration: reg, message: 'Already registered' } });
@@ -255,7 +276,9 @@ const registerForEvent = async (req, res) => {
       if (ev.registration_deadline && new Date(ev.registration_deadline) < now) {
         return res.status(400).json({ success: false, error: 'Registration deadline passed' });
       }
-      reg = await EventRegistration.create({ participantId: participant._id, eventId: ev._id });
+      const createPayload = { participantId: participant._id, eventId: ev._id };
+      if (formResponses) createPayload.formResponses = formResponses;
+      reg = await EventRegistration.create(createPayload);
     }
 
     const { v4: uuidv4 } = require('uuid');
@@ -310,7 +333,13 @@ const registerForEvent = async (req, res) => {
       else console.log('Registration email sent', info && info.messageId);
     });
 
-    return res.status(201).json({ success: true, data: { registration: reg, ticketId } });
+    const regOut = reg.toObject();
+    if (regOut.formResponses && !(regOut.formResponses instanceof Map)) {
+      // toObject() already converted the Mongoose Map to a plain object — nothing to do
+    } else if (reg.formResponses instanceof Map) {
+      regOut.formResponses = Object.fromEntries(reg.formResponses);
+    }
+    return res.status(201).json({ success: true, data: { registration: regOut, ticketId } });
   } catch (err) {
     console.error('registerForEvent error', err);
     return res.status(400).json({ success: false, error: err.message });
