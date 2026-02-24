@@ -60,8 +60,12 @@ export default function AdminManageOrganizers() {
     setShowModal(true);
   };
 
+  // Close modal but keep any recent credentials visible until admin dismisses explicitly
   const closeModal = () => {
     setShowModal(false);
+  };
+
+  const dismissCredentials = () => {
     setSubmitResult(null);
   };
 
@@ -74,11 +78,16 @@ export default function AdminManageOrganizers() {
     if (!form.contactEmail.trim()) { setSubmitResult({ success: false, message: 'Contact email is required.' }); return; }
     setSubmitting(true);
     setSubmitResult(null);
-    try {
+      try {
       const res = await organizerAPI.createOrganizer(form);
       if (res && res.data && res.data.success) {
-        const { organizer, message } = res.data.data;
-        setSubmitResult({ success: true, message: message || 'Organizer created successfully.', loginEmail: organizer.email });
+        const { organizer, message, credentials } = res.data.data;
+        setSubmitResult({
+          success: true,
+          message: message || 'Organizer created successfully.',
+          loginEmail: organizer.email,
+          credentials: credentials || null,
+        });
         fetchOrganizers(); // refresh list
       } else {
         setSubmitResult({ success: false, message: (res && res.data && res.data.error) || 'Failed to create organizer.' });
@@ -102,6 +111,31 @@ export default function AdminManageOrganizers() {
           + Add New Club/Organizer
         </button>
       </div>
+
+      {/* Credentials box: shown after successful creation until dismissed by admin */}
+      {submitResult && submitResult.success && submitResult.credentials && (
+        <div style={{ padding: 12, border: '1px solid #ffd28a', background: '#fff8e1', borderRadius: 8, marginBottom: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#8a5800' }}>New organizer credentials</div>
+              <div style={{ marginTop: 6, fontSize: 13, color: '#333' }}>
+                Login email: <strong>{submitResult.credentials.loginEmail}</strong>
+              </div>
+              <div style={{ marginTop: 4, fontSize: 13, color: '#333' }}>
+                Password: <strong>{submitResult.credentials.password}</strong>
+              </div>
+              {submitResult.credentials.contactEmail && (
+                <div style={{ marginTop: 6, fontSize: 12, color: '#666' }}>Sent to: {submitResult.credentials.contactEmail}</div>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => { navigator.clipboard?.writeText(submitResult.credentials.loginEmail); }} style={{ padding: '6px 10px' }}>Copy Email</button>
+              <button onClick={() => { navigator.clipboard?.writeText(submitResult.credentials.password); }} style={{ padding: '6px 10px' }}>Copy Password</button>
+              <button onClick={dismissCredentials} style={{ padding: '6px 10px', background: '#e53935', color: '#fff', border: 'none', borderRadius: 6 }}>Dismiss</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {loading && <div>Loading organizers...</div>}
       {error && <div style={{ color: 'red' }}>{error}</div>}

@@ -237,6 +237,7 @@ async function createOrganizer(req, res) {
       success: true,
       data: {
         organizer: { _id: organizer._id, email: loginEmail, first_name, last_name },
+        credentials: { loginEmail, password: rawPassword, contactEmail },
         message: `Account created. Credentials sent to ${contactEmail}.`,
       },
     });
